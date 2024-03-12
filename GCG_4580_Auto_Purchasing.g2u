@@ -1,0 +1,1696 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("MIR Auto Purchasing")
+Gui.Form..Size(14955,9225)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Serialize)
+Gui.Form.tab1.Create(Tab)
+Gui.Form.tab1.Size(14790,7200)
+Gui.Form.tab1.Position(60,1005)
+Gui.Form.tab1.Tabs(4)
+Gui.Form.tab1.SetTab(0)
+Gui.Form.tab1.Caption("Location Based")
+Gui.Form.tab1.SetTab(1)
+Gui.Form.tab1.Caption("Part Based")
+Gui.Form.tab1.SetTab(2)
+Gui.Form.tab1.Caption("Vendor Based")
+Gui.Form.tab1.SetTab(3)
+Gui.Form.tab1.Caption("Batch")
+Gui.Form.location.Create(GsGridControl)
+Gui.Form.location.Size(14505,6525)
+Gui.Form.location.Position(105,135)
+Gui.Form.location.Parent("tab1",0)
+Gui.Form.part.Create(GsGridControl)
+Gui.Form.part.Size(14505,6525)
+Gui.Form.part.Position(105,135)
+Gui.Form.part.Parent("tab1",1)
+Gui.Form.vendor.Create(GsGridControl)
+Gui.Form.vendor.Size(14505,6525)
+Gui.Form.vendor.Position(105,135)
+Gui.Form.vendor.Parent("tab1",2)
+Gui.Form.Batch.Create(GsGridControl)
+Gui.Form.Batch.Size(14505,6525)
+Gui.Form.Batch.Position(105,135)
+Gui.Form.Batch.Parent("tab1",3)
+Gui.Form.lblAutoPur.Create(Label,"Auto Purchasing",True,14850,1020,0,15,45,True,2,"Arial",24,32768,1)
+Gui.Form.lblAutoPur.ForeColor(16777215)
+Gui.Form.picGssLogo.Create(PictureBox)
+Gui.Form.picGssLogo.Size(4020,1005)
+Gui.Form.picGssLogo.Position(15,0)
+Gui.Form.picGssLogo.BackColor(16777215)
+Gui.Form.cmdBatch.Create(Button)
+Gui.Form.cmdBatch.Size(1350,375)
+Gui.Form.cmdBatch.Position(105,8280)
+Gui.Form.cmdBatch.Caption("Batch")
+Gui.Form.cmdBatch.Event(Click,cmdBatch_Click)
+Gui.Form.cmdDelete.Create(Button)
+Gui.Form.cmdDelete.Size(1725,375)
+Gui.Form.cmdDelete.Position(1530,8280)
+Gui.Form.cmdDelete.Caption("Delete Requisition")
+Gui.Form.cmdDelete.Event(Click,cmdDelete_Click)
+Gui.Form.optLoc.Create(Option)
+Gui.Form.optLoc.Size(1005,255)
+Gui.Form.optLoc.Position(4395,1035)
+Gui.Form.optLoc.Caption("Location")
+Gui.Form.optLoc.Event(Click,optLoc_Click)
+Gui.Form.optPart.Create(Option)
+Gui.Form.optPart.Size(675,255)
+Gui.Form.optPart.Position(5460,1035)
+Gui.Form.optPart.Caption("Part")
+Gui.Form.optPart.Event(Click,optLoc_Click)
+Gui.Form.optVend.Create(Option)
+Gui.Form.optVend.Size(1575,255)
+Gui.Form.optVend.Position(6210,1035)
+Gui.Form.optVend.Caption("Vendor")
+Gui.Form.optVend.Event(Click,optLoc_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Variable.Global.sPartFileParent.Declare(String)
+Variable.Global.sPartFileChild.Declare(String)
+Variable.Global.sLocFileParent.Declare(String)
+Variable.Global.sLocFileChild.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	V.Local.bRet.Declare(Boolean,False)
+	V.Local.sFile.Declare(String,"")
+	V.Local.sGssLogo.Declare(String)
+	V.Local.i.Declare(Long)
+
+	F.ODBC.Connection!Con.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+
+	F.Intrinsic.Control.CallSub("LocationPopulate")
+	F.Intrinsic.Control.CallSub("PartPopulate")
+	F.Intrinsic.Control.CallSub("VendorPopulate")
+
+
+
+
+	F.Intrinsic.String.Build("{0}\4580",V.Caller.FilesDir,V.Global.sPartFileParent)
+	F.Intrinsic.File.DirExists(V.Global.sPartFileParent,V.Local.bRet)
+	F.Intrinsic.Control.If(V.Local.bRet,=,False)
+		F.Intrinsic.File.CreateDir(V.Global.sPartFileParent)
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.String.Build("{0}\GCG_4580_GSS_Logo_Green_Dash.png",V.Caller.FilesDir,V.Local.sGssLogo)
+	Gui.Form.picGssLogo.Picture(V.Local.sGssLogo)
+
+	Gui.Form.tab1.Anchor(15)
+	Gui.Form.lblAutoPur.Anchor(13)
+	Gui.Form.location.Anchor(15)
+	Gui.Form.part.Anchor(15)
+	Gui.Form.vendor.Anchor(15)
+	Gui.Form.Batch.Anchor(15)
+	Gui.Form.cmdBatch.Anchor(6)
+	gui.Form.cmdDelete.Anchor(6)
+	Gui.Form.tab1.SetTab(0)
+	Gui.Form.lblAutoPur.Alignment(2)
+
+	Gui.Form.tab1.TabVisible(1,False)
+	Gui.Form.tab1.TabVisible(2,False)
+	Gui.Form.tab1.TabVisible(3,False)
+
+	Gui.Form.optLoc.Value(True)
+
+	Gui.Form..Show
+
+	F.Intrinsic.Control.CallSub("Deserialize")
+	
+	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.ParentLoc.RowCount--,1)
+		Gui.Form.location.ExpandMasterRow("ParentGV",V.Local.i)
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+'	
+''F.Intrinsic.Debug.InvokeDebugger
+''
+''
+'
+'	
+'	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.ParentVend.RowCount--,1)
+'		Gui.Form.vendor.ExpandMasterRow("ParentVendGV",V.Local.i)
+'	F.Intrinsic.Control.Next(V.Local.i)
+'	
+'	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.ParentPart.RowCount--,1)
+'		Gui.Form.part.ExpandMasterRow("ParentPartGV",V.Local.i)
+'	F.Intrinsic.Control.Next(V.Local.i)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf	
+F.Intrinsic.Control.EndTry
+
+Program.Sub.Main.End
+
+Program.Sub.LocationPopulate.Start
+F.Intrinsic.Control.Try
+	V.Local.sSql.Declare(String)
+	v.Local.bRet.Declare(Boolean)
+	V.Local.i.Declare(long)
+
+
+	F.Intrinsic.Control.If(v.DataTable.Inv.Exists,=,True)
+		F.Data.DataTable.Close("Inv")
+	f.Intrinsic.Control.EndIf 
+
+	F.Intrinsic.Control.If(v.DataTable.DueDate.Exists,=,True)
+		F.Data.DataTable.Close("DueDate")
+	f.Intrinsic.Control.EndIf 
+
+	F.Intrinsic.Control.If(v.DataTable.GCG.Exists,=,True)
+		F.Data.DataTable.Close("GCG")
+	f.Intrinsic.Control.EndIf 
+
+	F.Intrinsic.Control.If(v.DataTable.ParentLoc.Exists,=,True)
+		F.Data.DataTable.Close("ParentLoc")
+	f.Intrinsic.Control.EndIf 
+
+	F.Intrinsic.Control.If(v.DataTable.ParentLoc$LChild.Exists,=,True)
+		F.Data.DataTable.Close("ParentLoc$LChild")
+	f.Intrinsic.Control.EndIf 
+
+	Function.Data.Dictionary.Exists("Buyer",v.Local.bRet)
+	F.Intrinsic.Control.If(v.Local.bRet,=,True)
+		Function.Data.Dictionary.Close("Buyer")
+	f.Intrinsic.Control.EndIf 
+
+
+	F.Data.DataTable.CreateFromSQL("Inv","Con","SELECT UCASE(RTRIM(PART)) AS PART, UCASE(RTRIM(LOCATION)) AS LOCATION, DESCRIPTION, CODE_SORT, CODE_SOURCE, NAME_VENDOR FROM V_INVENTORY_ALL Where LOCATION <> '' and Part IN(Select Part GCG_4580_PO_REQ_DIMS)",True)
+'		F.Data.DataTable.CreateFromSQL("GCGTemp","Con","SELECT RTRIM(PO_REQ) as PO_Req, RTRIM(PO_REQ_LINE) as PO_REQ_LINE, PART, LOCATION, SLABS, LENGTH, WIDTH, QUANTITY, TOTAL_QTY_LINE From GCG_4580_PO_REQ_DIMS Where Location <> ''",True)
+	F.Data.DataTable.CreateFromSQL("GCGTemp","Con","SELECT RTRIM(PO_REQ) as PO_Req, RTRIM(PO_REQ_LINE) as PO_REQ_LINE, PART, LOCATION, SLABS, LENGTH, WIDTH, QUANTITY, TOTAL_QTY_LINE,GL_Account,UM,unit_price,Product_Line,Exchange_Rate,Exchange_Cost From GCG_4580_PO_REQ_DIMS DIM join V_Purchase_Reqs REQ on PO_REQ = PO_REQ_NUMBER and REQ.PO_REQ_LINE = DIM.PO_REQ_LINE Where Location <> ''",True)
+	F.Data.DataTable.AddColumn("GCGTemp","Comments","String")
+
+	'getting date due
+	F.Intrinsic.String.Build("Select PO_Req_Number as PO_Req, Date_Due as DateDue,PO_Req_line as PO_line,UserID_Originator From V_Purchase_Reqs","",V.Local.sSql)
+'	F.Intrinsic.String.Build("Select PO_Req_Number as PO_Req, Date_Due as DateDue,PO_Req_line as PO_line,UserID_Originator From PURCHASE_REQS_1","",V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("DueDate","con",V.Local.sSql,True)
+
+'	F.Data.Linq.Join("Innerjoin","DataTable","GCGTemp*!*Temp","DataTable","DueDate*!*DD","Temp.PO_Req = DD.PO_Req","Temp.PO_REQ*!*Temp.PO_REQ_LINE*!*Temp.PART*!*Temp.LOCATION*!*Temp.Slabs*!*Temp.Length*!*Temp.Width*!*Temp.Quantity*!*Temp.TOTAL_QTY_LINE*!*DD.DateDue*!*Temp.Comments","","Temp.PO_Req","Temp.PO_Req","GCG",True)
+'	F.Data.Linq.Join("Innerjoin","DataTable","GCGTemp*!*Temp","DataTable","DueDate*!*DD","Temp.PO_Req = DD.PO_Req and Temp.PO_REQ_LINE = DD.PO_line","Temp.PO_REQ*!*Temp.PO_REQ_LINE*!*Temp.PART*!*Temp.LOCATION*!*Temp.Slabs*!*Temp.Length*!*Temp.Width*!*Temp.Quantity*!*Temp.TOTAL_QTY_LINE*!*DD.DateDue*!*Temp.Comments*!*DD.UserID_Originator","","Temp.PO_Req","Temp.PO_Req","GCG",True)
+
+	F.Data.Linq.Join("Innerjoin","DataTable","GCGTemp*!*Temp","DataTable","DueDate*!*DD","Temp.PO_Req = DD.PO_Req and Temp.PO_REQ_LINE = DD.PO_line","Temp.PO_REQ*!*Temp.PO_REQ_LINE*!*Temp.PART*!*Temp.LOCATION*!*Temp.Slabs*!*Temp.Length*!*Temp.Width*!*Temp.Quantity*!*Temp.TOTAL_QTY_LINE*!*DD.DateDue*!*Temp.Comments*!*DD.UserID_Originator*!*Temp.GL_Account*!*Temp.UM*!*Temp.unit_price*!*Temp.Product_Line*!*Temp.Exchange_Rate*!*Temp.Exchange_Cost","","Temp.PO_Req","Temp.PO_Req","GCG",True)
+
+	'Location is going to be populating all parts with their location
+	'Child will open up to show all of the reqs for that part and location
+	F.Intrinsic.String.Build("SELECT Distinct Location From GCG_4580_PO_REQ_DIMS Where Location <> ''","",V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("ParentLoc","Con",V.Local.sSql,True)
+
+	F.Data.DataView.Create("ParentLoc","ParentLocView",22,"","Location asc")
+
+	F.Data.DataTable.Close("GCGTemp")
+
+'	F.Data.Linq.Join("Innerjoin","DataTable","GCG*!*GCG","DataTable","Inv*!*Inv","GCG.Part = Inv.Part and GCG.Location = Inv.Location","inv.Part*!*inv.Location*!*Inv.Description*!*Inv.Code_Sort*!*Inv.Code_Source*!*Inv.Name_Vendor*!*GCG.PO_REQ*!*GCG.PO_REQ_LINE*!*GCG.PART*!*GCG.LOCATION*!*GCG.Slabs*!*GCG.Length*!*GCG.Width*!*GCG.Quantity*!*GCG.TOTAL_QTY_LINE*!*GCG.Comments*!*GCG.DateDue*!*GCG.UserID_Originator","GCG.Location = Inv.Location","inv.Part","inv.Location","ParentLoc$LChild",True)
+	F.Data.Linq.Join("Innerjoin","DataTable","GCG*!*GCG","DataTable","Inv*!*Inv","GCG.Part = Inv.Part and GCG.Location = Inv.Location","inv.Part*!*inv.Location*!*Inv.Description*!*Inv.Code_Sort*!*Inv.Code_Source*!*Inv.Name_Vendor*!*GCG.PO_REQ*!*GCG.PO_REQ_LINE*!*GCG.PART*!*GCG.LOCATION*!*GCG.Slabs*!*GCG.Length*!*GCG.Width*!*GCG.Quantity*!*GCG.TOTAL_QTY_LINE*!*GCG.Comments*!*GCG.DateDue*!*GCG.UserID_Originator","","inv.Part","inv.Location","ParentLoc$LChild",True)
+	F.Data.DataTable.RemoveColumn("ParentLoc$LChild","Part")
+	F.Data.DataTable.RemoveColumn("ParentLoc$LChild","LOCATION")
+
+	F.Data.DataView.Create("ParentLoc$LChild","ChildView",22,"","PO_Req asc, PO_req_Line Asc")
+	F.Data.DataTable.AddColumn("ParentLoc$LChild","BuyerName","String")
+'	F.Data.DataTable.AddColumn("ParentLoc$LChild","DateDue","Date")
+	F.Data.DataTable.AddColumn("ParentLoc$LChild","Selection","Boolean",False)
+	F.Data.DataTable.AddExpressionColumn("ParentLoc$LChild","PartD","String","Trim(substring(Part,1,17))")
+	F.Data.DataTable.AddExpressionColumn("ParentLoc$LChild","RevD","String","trim(substring(Part,18,3))")
+
+	'getting buyer name
+	F.Intrinsic.String.Build("Select PO_Req_Number as PO_Req, b.Buyer as BuyerName From V_Purchase_Reqs a join V_Buyers b on a.Buyer = b.Buyer_Code","",V.Local.sSql)
+	F.Data.Dictionary.CreateFromSQL("Buyer","con",V.Local.sSql)
+
+	'setting defualt return to ''
+	F.Data.Dictionary.SetDefaultReturn("Buyer"," ")
+
+	'filling buyer name from dictionary
+	F.Data.DataTable.FillFromDictionary("ParentLoc$LChild","Buyer","PO_Req","BuyerName")
+	
+
+	Gui.Form.location.AddGridviewFromDataview("ParentGV","ParentLoc","ParentLocView")
+
+	Gui.Form.location.AddGridviewFromDataview("ChildGV","ParentLoc","ChildView")
+	
+
+	Gui.Form.location.AddRelation("ParentGV","ChildGV","Location","Location","PartLoc")
+	
+	
+	Gui.Form.location.MainView("ParentGV")
+
+	gui.Form.location.ExpandMasterRow("ParentGV",0)
+
+	Gui.Form.location.SetGridViewProperty("ParentGV","MultiSelect",True)
+	Gui.Form.location.SetGridViewProperty("ParentGV","AllowSort",True)
+	Gui.Form.location.SetGridViewProperty("ParentGV","AllowFilter",True)
+	Gui.Form.location.SetGridViewProperty("ParentGV","OptionsDetailShowDetailTabs",False)
+
+	Gui.Form.location.SetGridViewProperty("ParentGV","EnableAppearanceOddRow",True)
+
+	Gui.Form.location.SetColumnProperty("ParentGV","Location","HeaderBackColor","Green")
+
+	Gui.Form.location.SetColumnProperty("ParentGV","Location","HeaderForeColor","White")
+
+	Gui.Form.location.SetGridviewProperty("ParentGV","Editable",True)
+	Gui.Form.location.SetGridviewProperty("ParentGV","ReadOnly",False)
+	Gui.Form.location.SetGridviewProperty("ParentGV","Enableappearanceevenrow",True)
+
+	Gui.Form.location.SetGridviewProperty("ChildGV","Editable",True)
+	Gui.Form.location.SetGridviewProperty("ChildGV","ReadOnly",False)
+	Gui.Form.location.SetGridviewProperty("ChildGV","Enableappearanceevenrow",True)
+
+	Gui.Form.location.SetGridViewProperty("ChildGV","MultiSelect",True)
+	Gui.Form.location.SetGridViewProperty("ChildGV","AllowSort",True)
+	Gui.Form.location.SetGridViewProperty("ChildGV","AllowFilter",True)
+	Gui.Form.location.SetGridViewProperty("ChildGV","OptionsDetailShowDetailTabs",False)
+
+	Gui.Form.location.SetGridViewProperty("ChildGV","EnableAppearanceOddRow",True)
+
+	Gui.Form.location.SetColumnProperty("ChildGV","Part","visible",False)
+	Gui.Form.location.SetColumnProperty("ChildGV","location","visible",False)
+
+	Gui.Form.location.SetColumnProperty("ChildGV","Selection","visibleIndex",0)
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req","visibleIndex",1)
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req_Line","visibleIndex",2)
+	Gui.Form.location.SetColumnProperty("ChildGV","PartD","visibleIndex",3)
+	Gui.Form.location.SetColumnProperty("ChildGV","RevD","visibleIndex",4)
+	Gui.Form.location.SetColumnProperty("ChildGV","BuyerName","visibleIndex",5)
+	Gui.Form.location.SetColumnProperty("ChildGV","Comments","visibleIndex",16)
+
+	Gui.Form.location.SetColumnProperty("ChildGV","Selection","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Description","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Code_Sort","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","BuyerName","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Code_Source","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Name_Vendor","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req_Line","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Slabs","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Length","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Width","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Quantity","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Total_Qty_Line","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","DateDue","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","PartD","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","RevD","HeaderBackColor","Green")
+	Gui.Form.location.SetColumnProperty("ChildGV","Comments","HeaderBackColor","Green")
+
+	Gui.Form.location.SetColumnProperty("ChildGV","Selection","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Description","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Code_Sort","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","BuyerName","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Code_Source","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Name_Vendor","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req_Line","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Slabs","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Length","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Width","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Quantity","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","Total_Qty_Line","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","DateDue","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","PartD","HeaderForeColor","White")
+	Gui.Form.location.SetColumnProperty("ChildGV","RevD","HeaderForeColor","White")
+	GUi.Form.location.SetColumnProperty("ChildGV","Comments","HeaderForeColor","White")
+
+	gui.Form.location.SetColumnProperty("ChildGV","Comments","CellBackColor","#f0e68c")
+	Gui.Form.location.SetColumnProperty("ChildGV","Code_Sort","Caption","Sort Code")
+	Gui.Form.location.SetColumnProperty("ChildGV","BuyerName","Caption","Buyer Name")
+	Gui.Form.location.SetColumnProperty("ChildGV","Code_Source","Caption","Source Code")
+	Gui.Form.location.SetColumnProperty("ChildGV","Name_Vendor","Caption","Vendor Name")
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req","Caption","PO Req")
+	Gui.Form.location.SetColumnProperty("ChildGV","PO_Req_Line","Caption","PO Req Line")
+	Gui.Form.location.SetColumnProperty("ChildGV","Total_Qty_Line","Caption","Total Quantity")
+	Gui.Form.location.SetColumnProperty("ChildGV","DateDue","Caption","Date Due")
+	Gui.Form.location.SetColumnProperty("ChildGV","PartD","Caption","Part")
+	Gui.Form.location.SetColumnProperty("ChildGV","RevD","Caption","Rev")
+
+	gui.Form.location.SetColumnProperty("ChildGV", "UserID_Originator", "Visible", False)
+
+	Gui.Form.location.SetColumnProperty("ChildGV","DateDue","DisplayCustomDatetime","d")
+	
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+
+Program.Sub.LocationPopulate.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.Try
+	'closing connection and ending program
+	F.ODBC.Connection!Con.Close
+	F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.End
+
+F.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.PartPopulate.Start
+F.Intrinsic.Control.Try
+
+V.Local.i.Declare(long)
+
+
+
+	F.Intrinsic.Control.If(v.DataTable.ParentPart.Exists,=,True)
+		F.Data.DataTable.Close("ParentPart")
+	f.Intrinsic.Control.EndIf 
+
+	F.Intrinsic.Control.If(v.DataTable.ParentPart$PChild.Exists,=,True)
+		F.Data.DataTable.Close("ParentPart$PChild")
+	f.Intrinsic.Control.EndIf 
+
+
+	'Part is going to populate all parts regardless of their location
+	'Child will open up to show all of the rewqs with the location
+
+	F.Data.DataTable.CreateFromSQL("ParentPart","Con","Select distinct Part From GCG_4580_PO_REQ_DIMS Where Location <> ''",True)
+
+	F.Data.DataView.Create("ParentPart","ParentPartView",22,"","Part asc")
+
+'	F.Data.Linq.Join("Innerjoin","DataTable","GCG*!*GCG","DataTable","Inv*!*Inv","GCG.Part = Inv.Part and GCG.Location = Inv.Location","inv.Part*!*inv.Location*!*Inv.Description*!*Inv.Code_Sort*!*Inv.Code_Source*!*Inv.Name_Vendor*!*GCG.PO_REQ*!*GCG.PO_REQ_LINE*!*GCG.PART*!*GCG.LOCATION*!*GCG.Slabs*!*GCG.Length*!*GCG.Width*!*GCG.Quantity*!*GCG.TOTAL_QTY_LINE*!*GCG.Comments*!*GCG.DateDue*!*GCG.UserID_Originator","GCG.Location = Inv.Location","inv.Part","inv.Part","ParentPart$PChild",True)
+F.Data.Linq.Join("Innerjoin","DataTable","GCG*!*GCG","DataTable","Inv*!*Inv","GCG.Part = Inv.Part and GCG.Location = Inv.Location","inv.Part*!*inv.Location*!*Inv.Description*!*Inv.Code_Sort*!*Inv.Code_Source*!*Inv.Name_Vendor*!*GCG.PO_REQ*!*GCG.PO_REQ_LINE*!*GCG.PART*!*GCG.LOCATION*!*GCG.Slabs*!*GCG.Length*!*GCG.Width*!*GCG.Quantity*!*GCG.TOTAL_QTY_LINE*!*GCG.Comments*!*GCG.DateDue*!*GCG.UserID_Originator","","inv.Part","inv.Part","ParentPart$PChild",True)
+
+	F.Data.DataTable.RemoveColumn("ParentPart$PChild","PART")
+	F.Data.DataTable.RemoveColumn("ParentPart$PChild","LOCATION")
+	F.Data.DataView.Create("ParentPart$PChild","ChildPartView",22,"","PO_Req asc, PO_req_Line Asc")
+	F.Data.DataTable.AddColumn("ParentPart$PChild","BuyerName","String")
+'	F.Data.DataTable.AddColumn("ParentPart$PChild","DateDue","Date")
+	F.Data.DataTable.AddColumn("ParentPart$PChild","Selection","Boolean",False)
+
+	F.Data.DataTable.AddExpressionColumn("ParentPart","PartD","String","Trim(substring(Part,1,17))")
+	F.Data.DataTable.AddExpressionColumn("ParentPart","RevD","String","Trim(substring(Part,18,3))")
+
+	'filling buyer name from dictionary
+	F.Data.DataTable.FillFromDictionary("ParentPart$PChild","Buyer","PO_Req","BuyerName")
+
+	Gui.Form.part.AddGridviewFromDataview("ParentPartGV","ParentPart","ParentPartView")
+	Gui.Form.part.AddGridviewFromDataview("ChildPartGV","ParentPart","ChildPartView")
+	Gui.Form.part.AddRelation("ParentPartGV","ChildPartGV","Part","Part","Part")
+
+	Gui.Form.part.MainView("ParentPartGV")
+
+	Gui.Form.part.SetColumnProperty("ParentPartGV","Part","visible",False)
+	Gui.Form.part.SetColumnProperty("ParentPartGV","PartD","visibleIndex",1)
+	Gui.Form.part.SetColumnProperty("ParentPartGV","RevD","visibleIndex",2)
+
+	Gui.Form.part.SetGridViewProperty("ParentPartGV","MultiSelect",True)
+	Gui.Form.part.SetGridViewProperty("ParentPartGV","AllowSort",True)
+	Gui.Form.part.SetGridViewProperty("ParentPartGV","AllowFilter",True)
+	Gui.Form.part.SetGridViewProperty("ParentPartGV","OptionsDetailShowDetailTabs",False)
+	Gui.Form.part.SetGridViewProperty("ParentPartGV","EnableAppearanceOddRow",True)
+	Gui.Form.part.SetGridviewProperty("ParentPartGV","Editable",True)
+	Gui.Form.part.SetGridviewProperty("ParentPartGV","readonly",False)
+
+	Gui.Form.part.SetColumnProperty("ParentPartGV","PartD","Caption","Part")
+	Gui.Form.part.SetColumnProperty("ParentPartGV","RevD","Caption","Rev")
+
+	Gui.Form.part.SetColumnProperty("ParentPartGV","PartD","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ParentPartGV","RevD","HeaderBackColor","Green")
+
+	Gui.Form.part.SetColumnProperty("ParentPartGV","PartD","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ParentPartGV","RevD","HeaderForeColor","White")
+
+	Gui.Form.part.SetGridviewProperty("ParentPartGV","Enableappearanceevenrow",True)
+
+	Gui.Form.part.SetGridviewProperty("ChildPartGV","Editable",False)
+	Gui.Form.part.SetGridviewProperty("ChildPartGV","ReadOnly",True)
+	Gui.Form.part.SetGridviewProperty("ChildPartGV","Enableappearanceevenrow",True)
+
+	Gui.Form.part.SetGridViewProperty("ChildPartGV","MultiSelect",True)
+	Gui.Form.part.SetGridViewProperty("ChildPartGV","AllowSort",True)
+	Gui.Form.part.SetGridViewProperty("ChildPartGV","AllowFilter",True)
+	Gui.Form.part.SetGridViewProperty("ChildPartGV","OptionsDetailShowDetailTabs",False)
+	Gui.Form.part.SetGridviewProperty("ChildPartGV","Editable",True)
+	Gui.Form.part.SetGridviewProperty("ChildPartGV","readonly",False)
+	Gui.Form.part.SetGridViewProperty("ChildPartGV","EnableAppearanceOddRow",True)
+
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Part","visible",False)
+
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Selection","visibleIndex",0)
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Location","visibleIndex",1)
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req","visibleIndex",2)
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req_Line","visibleIndex",3)
+	Gui.Form.part.SetColumnProperty("ChildPartGV","BuyerName","visibleIndex",4)
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Comments","visibleIndex",16)
+
+	gui.Form.part.SetColumnProperty("ChildPartGV","Comments","CellBackColor","#f0e68c")
+
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Part","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Selection","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Description","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Code_Sort","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","BuyerName","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Code_Source","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Name_Vendor","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req_Line","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Location","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Slabs","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Length","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Width","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Quantity","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Total_Qty_Line","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","DateDue","HeaderBackColor","Green")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Comments","HeaderBackColor","Green")
+
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Part","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Selection","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Description","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Code_Sort","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","BuyerName","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Code_Source","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Name_Vendor","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req_Line","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Location","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Slabs","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Length","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Width","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Quantity","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Total_Qty_Line","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","DateDue","HeaderForeColor","White")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Comments","HeaderForeColor","White")
+
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Code_Sort","Caption","Sort Code")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","BuyerName","Caption","Buyer Name")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Code_Source","Caption","Source Code")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Name_Vendor","Caption","Vendor Name")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req","Caption","PO Req")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","PO_Req_Line","Caption","PO Req Line")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","Total_Qty_Line","Caption","Total Quantity")
+	Gui.Form.part.SetColumnProperty("ChildPartGV","DateDue","Caption","Date Due")
+
+	gui.Form.part.SetColumnProperty("ChildPartGV", "UserID_Originator", "Visible", False)
+	Gui.Form.part.SetColumnProperty("ChildPartGV","DateDue","DisplayCustomDatetime","d")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+Program.Sub.PartPopulate.End
+
+Program.Sub.Error.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String)
+
+	'display error messages
+	F.Intrinsic.String.Build("Project: GCG_4580_Auto_Purchasing.g2u{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Args.Sub,V.Args.Error,V.Args.Description,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub("Form_UnLoad")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub("Form_UnLoad")
+F.Intrinsic.Control.EndTry
+Program.Sub.Error.End
+
+Program.Sub.Deserialize.Start
+F.Intrinsic.Control.Try
+	V.Local.iTab.Declare(Long)
+	V.Local.sSerialize.Declare(String)
+	V.Local.bRet.Declare(Boolean,False)
+
+	'Save Tab
+	V.Local.iTab.Set(V.Screen.Form!tab1.Tab)
+
+	'checking xml files for grid layout
+	'Part Tab
+	F.Intrinsic.String.Build("{0}\4580\{1}4580PartParent.txt",V.Caller.FilesDir,V.Caller.User,V.Global.sPartFileParent)
+	F.Intrinsic.File.Exists(V.Global.sPartFileParent,V.Local.bRet)
+	F.Intrinsic.Control.If(V.Local.bRet,=,True)
+		Gui.Form.tab1.SetTab(1)
+		F.Intrinsic.File.File2String(V.Global.sPartFileParent,V.Local.sSerialize)
+		Gui.Form.part.Deserialize(V.Local.sSerialize)
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.String.Build("{0}\4580\{1}4580PartChild.txt",V.Caller.FilesDir,V.Caller.User,V.Global.sPartFileChild)
+	F.Intrinsic.File.Exists(V.Global.sPartFileChild,V.Local.bRet)
+	F.Intrinsic.Control.If(V.Local.bRet,=,True)
+		Gui.Form.tab1.SetTab(1)
+		F.Intrinsic.File.File2String(V.Global.sPartFileChild,V.Local.sSerialize)
+		Gui.Form.part.Deserialize(V.Local.sSerialize)
+	F.Intrinsic.Control.EndIf
+
+	'Loc Tab
+	F.Intrinsic.String.Build("{0}\4580\{1}4580LocParent.txt",V.Caller.FilesDir,V.Caller.User,V.Global.sLocFileParent)
+	F.Intrinsic.File.Exists(V.Global.sLocFileParent,V.Local.bRet)
+	F.Intrinsic.Control.If(V.Local.bRet,=,True)
+		Gui.Form.tab1.SetTab(0)
+		F.Intrinsic.File.File2String(V.Global.sLocFileParent,V.Local.sSerialize)
+		Gui.Form.part.Deserialize(V.Local.sSerialize)
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.String.Build("{0}\4580\{1}4580LocChild.txt",V.Caller.FilesDir,V.Caller.User,V.Global.sLocFileChild)
+	F.Intrinsic.File.Exists(V.Global.sLocFileChild,V.Local.bRet)
+	F.Intrinsic.Control.If(V.Local.bRet,=,True)
+		Gui.Form.tab1.SetTab(0)
+		F.Intrinsic.File.File2String(V.Global.sLocFileChild,V.Local.sSerialize)
+		Gui.Form.part.Deserialize(V.Local.sSerialize)
+	F.Intrinsic.Control.EndIf
+
+	'Set Tab
+	Gui.FrmPO.tabPODash.SetTab(V.Local.iTab)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+Program.Sub.Deserialize.End
+
+Program.Sub.Serialize.Start
+F.Intrinsic.Control.Try
+	V.Local.sSerialize.Declare(String)
+	V.Local.sError.Declare(String)	
+
+	'saving grid layout in xml format to txt files
+	Gui.Form.part.Serialize("ParentPartGV",V.Local.sSerialize)
+	F.Intrinsic.File.String2File(V.Global.sPartFileParent,V.Local.sSerialize)
+
+	Gui.Form.location.Serialize("ParentGV",V.Local.sSerialize)
+	F.Intrinsic.File.String2File(V.Global.sLocFileParent,V.Local.sSerialize)
+
+	Gui.Form.part.Serialize("ChildPartGV",V.Local.sSerialize)
+	F.Intrinsic.File.String2File(V.Global.sPartFileChild,V.Local.sSerialize)
+
+	Gui.Form.location.Serialize("ChildGV",V.Local.sSerialize)
+	F.Intrinsic.File.String2File(V.Global.sLocFileChild,V.Local.sSerialize)
+
+	F.Intrinsic.Control.CallSub("Form_UnLoad")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+Program.Sub.Serialize.End
+
+Program.Sub.VendorPopulate.Start
+F.Intrinsic.Control.Try
+
+
+	F.Intrinsic.Control.If(v.DataTable.ParentVend.Exists,=,True)
+		F.Data.DataTable.Close("ParentVend")
+	f.Intrinsic.Control.EndIf 
+
+	F.Intrinsic.Control.If(v.DataTable.ParentVend$VChild.Exists,=,True)
+		F.Data.DataTable.Close("ParentVend$VChild")
+	f.Intrinsic.Control.EndIf
+
+
+	'grouping by vendor
+	F.Data.DataTable.CreateFromSQL("ParentVend","con","SELECT Distinct NAME_VENDOR FROM V_INVENTORY_ALL a join GCG_4580_PO_REQ_DIMS b on a.part = b.part and a.location = b.location Where Location <> ''",True)
+
+	F.Data.DataView.Create("ParentVend","ParentVendView",22,"","Name_Vendor asc")
+
+'	F.Data.Linq.Join("Innerjoin","DataTable","GCG*!*GCG","DataTable","Inv*!*Inv","GCG.Part = Inv.Part and GCG.Location = Inv.Location","inv.Part*!*inv.Location*!*Inv.Description*!*Inv.Code_Sort*!*Inv.Code_Source*!*Inv.Name_Vendor*!*GCG.PO_REQ*!*GCG.PO_REQ_LINE*!*GCG.PART*!*GCG.LOCATION*!*GCG.Slabs*!*GCG.Length*!*GCG.Width*!*GCG.Quantity*!*GCG.TOTAL_QTY_LINE*!*GCG.Comments*!*GCG.DateDue*!*GCG.UserID_Originator*!*GCG.GL_Account*!*GCG.UM*!*GCG.unit_price*!*GCG.Product_Line*!*GCG.Exchange_Rate*!*GCG.Exchange_Cost","GCG.Location = Inv.Location","inv.Part","inv.Name_Vendor","ParentVend$VChild",True)
+	F.Data.Linq.Join("Innerjoin","DataTable","GCG*!*GCG","DataTable","Inv*!*Inv","GCG.Part = Inv.Part and GCG.Location = Inv.Location","inv.Part*!*inv.Location*!*Inv.Description*!*Inv.Code_Sort*!*Inv.Code_Source*!*Inv.Name_Vendor*!*GCG.PO_REQ*!*GCG.PO_REQ_LINE*!*GCG.PART*!*GCG.LOCATION*!*GCG.Slabs*!*GCG.Length*!*GCG.Width*!*GCG.Quantity*!*GCG.TOTAL_QTY_LINE*!*GCG.Comments*!*GCG.DateDue*!*GCG.UserID_Originator*!*GCG.GL_Account*!*GCG.UM*!*GCG.unit_price*!*GCG.Product_Line*!*GCG.Exchange_Rate*!*GCG.Exchange_Cost","","inv.Part","inv.Name_Vendor","ParentVend$VChild",True)
+
+'GCG.GL_Account*!*GCG.UM*!*GCG.unit_price*!*GCG.Product_Line*!*GCG.Exchange_Rate*!*GCG.Exchange_Cost
+
+
+	F.Data.DataTable.RemoveColumn("ParentVend$VChild","PART")
+	F.Data.DataTable.RemoveColumn("ParentVend$VChild","LOCATION")
+	F.Data.DataView.Create("ParentVend$VChild","ChildVendView",22,"","PO_Req asc, PO_req_Line Asc")
+	F.Data.DataTable.AddColumn("ParentVend$VChild","BuyerName","String")
+'	F.Data.DataTable.AddColumn("ParentVend$VChild","DateDue","Date")
+	F.Data.DataTable.AddColumn("ParentVend$VChild","Selection","Boolean",False)
+
+	'filling buyer name from dictionary
+	F.Data.DataTable.FillFromDictionary("ParentVend$VChild","Buyer","PO_Req","BuyerName")
+
+	F.Data.DataTable.AddExpressionColumn("ParentVend$VChild","PartD","String","Trim(substring(Part,1,17))")
+	F.Data.DataTable.AddExpressionColumn("ParentVend$VChild","RevD","String","Trim(substring(Part,18,3))")
+
+	Gui.Form.vendor.AddGridviewFromDataview("ParentVendGV","ParentVend","ParentVendView")
+	Gui.Form.vendor.AddGridviewFromDataview("ChildVendGV","ParentVend","ChildVendView")
+	Gui.Form.vendor.AddRelation("ParentVendGV","ChildVendGV","Name_Vendor","Name_Vendor","Vendor")
+
+	Gui.Form.vendor.MainView("ParentVendGV")
+	
+	
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","GL_Account","visible",False)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","UM","visible",False)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","unit_price","visible",False)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Product_Line","visible",False)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Exchange_Rate","visible",False)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Exchange_Cost","visible",False)
+
+	Gui.Form.vendor.SetGridViewProperty("ParentVendGV","MultiSelect",True)
+	Gui.Form.vendor.SetGridViewProperty("ParentVendGV","AllowSort",True)
+	Gui.Form.vendor.SetGridViewProperty("ParentVendGV","AllowFilter",True)
+	Gui.Form.vendor.SetGridViewProperty("ParentVendGV","OptionsDetailShowDetailTabs",False)
+	Gui.Form.vendor.SetGridViewProperty("ParentVendGV","EnableAppearanceOddRow",True)
+	Gui.Form.vendor.SetGridviewProperty("ParentVendGV","Editable",True)
+	Gui.Form.vendor.SetGridviewProperty("ParentVendGV","readonly",False)
+
+	Gui.Form.vendor.SetColumnProperty("ParentVendGV","Name_Vendor","Caption","Vendor Name")
+
+	Gui.Form.vendor.SetColumnProperty("ParentVendGV","Name_Vendor","HeaderBackColor","Green")
+
+	Gui.Form.vendor.SetColumnProperty("ParentVendGV","Name_Vendor","HeaderForeColor","White")
+
+	Gui.Form.vendor.SetGridviewProperty("ParentVendGV","Enableappearanceevenrow",True)
+
+	Gui.Form.vendor.SetGridviewProperty("ChildVendGV","Editable",True)
+	Gui.Form.vendor.SetGridviewProperty("ChildVendGV","ReadOnly",False)
+	Gui.Form.vendor.SetGridviewProperty("ChildVendGV","Enableappearanceevenrow",True)
+
+	Gui.Form.vendor.SetGridViewProperty("ChildVendGV","MultiSelect",True)
+	Gui.Form.vendor.SetGridViewProperty("ChildVendGV","AllowSort",True)
+	Gui.Form.vendor.SetGridViewProperty("ChildVendGV","AllowFilter",True)
+	Gui.Form.vendor.SetGridViewProperty("ChildVendGV","OptionsDetailShowDetailTabs",False)
+
+	Gui.Form.vendor.SetGridViewProperty("ChildVendGV","EnableAppearanceOddRow",True)
+
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Part","visible",False)
+
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Selection","visibleIndex",0)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req","visibleIndex",1)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req_Line","visibleIndex",2)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PartD","visibleIndex",3)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","RevD","visibleIndex",4)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Location","visibleIndex",5)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","BuyerName","visibleIndex",6)
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Comments","visibleIndex",17)
+
+	gui.Form.vendor.SetColumnProperty("ChildVendGV","Comments","CellBackColor","#f0e68c")
+
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Part","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Location","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Selection","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Description","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Code_Sort","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","BuyerName","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Code_Source","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Name_Vendor","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req_Line","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Slabs","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Length","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Width","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Quantity","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Total_Qty_Line","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","DateDue","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PartD","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","RevD","HeaderBackColor","Green")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Comments","HeaderBackColor","Green")
+
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Part","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Location","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Selection","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Description","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Code_Sort","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","BuyerName","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Code_Source","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Name_Vendor","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req_Line","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Slabs","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Length","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Width","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Quantity","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Total_Qty_Line","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","DateDue","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PartD","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","RevD","HeaderForeColor","White")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Comments","HeaderForeColor","White")
+
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Code_Sort","Caption","Sort Code")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","BuyerName","Caption","Buyer Name")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Code_Source","Caption","Source Code")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Name_Vendor","Caption","Vendor Name")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req","Caption","PO Req")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PO_Req_Line","Caption","PO Req Line")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","Total_Qty_Line","Caption","Total Quantity")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","DateDue","Caption","Date Due")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","PartD","Caption","Part")
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","RevD","Caption","Rev")
+
+	gui.Form.vendor.SetColumnProperty("ChildVendGV", "UserID_Originator", "Visible", False)
+
+	Gui.Form.vendor.SetColumnProperty("ChildVendGV","DateDue","DisplayCustomDatetime","d")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+Program.Sub.VendorPopulate.End
+
+Program.Sub.cmdBatch_Click.Start
+F.Intrinsic.Control.Try
+
+
+
+
+V.Local.sDT.Declare(string)
+V.Local.sDV.Declare(string)
+V.Local.svar1.Declare(string)
+V.Local.svar2.Declare(string)
+V.Local.i.Declare(long)
+v.Local.lcount.Declare(long)
+
+V.Local.sVendor.Declare(string)
+V.Local.sLOCATION.Declare(string)
+V.Local.sDateDue.Declare(string)
+V.Local.sPart.Declare(string)
+V.Local.sFilter.Declare(string)
+v.Local.fRet.Declare(Float)
+
+f.Intrinsic.Control.If(v.Screen.Form!cmdBatch.Caption,=,"Create PO's")
+	f.Intrinsic.Control.CallSub(createpo)
+	f.Intrinsic.Control.ExitSub 
+f.Intrinsic.Control.endif
+
+F.Intrinsic.Control.If(V.Screen.Form!optLoc.Value,=,True)
+	V.Local.sDT.Set("ParentLoc")
+	V.Local.sDV.Set("ParentLoc$LChild")
+F.Intrinsic.Control.elseIf(V.Screen.Form!optPart.Value,=,True)
+	V.Local.sDT.Set("ParentPart")
+	V.Local.sDV.Set("ParentPart$PChild")
+F.Intrinsic.Control.elseIf(V.Screen.Form!optVend.Value,=,True)
+	V.Local.sDT.Set("ParentVend")
+	V.Local.sDV.Set("ParentVend$VChild")
+f.Intrinsic.Control.endif
+
+
+Function.Data.DataView.Create(V.Local.sDV,"Del_V",22,"Selection=True","")
+
+v.Local.lcount.Set(v.DataView.[V.Local.sDV]!Del_V.rowcount)
+
+f.Intrinsic.Control.If(v.Local.lcount,=,0)
+	F.Data.DataView.close(V.Local.sDV,"Del_V")
+	f.Intrinsic.UI.Msgbox("Please select atleast one PO Requisition")
+	f.Intrinsic.Control.ExitSub 
+f.Intrinsic.Control.EndIf 
+
+Gui.Form.optLoc.Visible(False)
+Gui.Form.optPart.Visible(False)
+Gui.Form.optVend.Visible(False)
+
+
+Gui.Form.cmdDelete.Caption("Cancel")
+Gui.Form.cmdBatch.Caption("Create PO's")
+
+
+F.Intrinsic.Control.If(v.DataTable.DTBatchTemp.Exists,=,True)
+	F.Data.DataTable.Close("DTBatchTemp")
+f.Intrinsic.Control.EndIf 
+
+Function.Data.DataView.ToDataTableDistinct(v.local.sDT,"Del_V","DT_BatchVendor","Name_Vendor")
+'F.Data.DataView.Create("DT_BatchVendor","VendorView")
+'
+'F.Data.DataView.Create("dtHdr","dvHdr",22,"","PRIORITY_LEVEL ASC")
+F.Data.DataView.Create("DT_BatchVendor","VendorView",22,"","Name_Vendor ASC")
+
+
+Function.Data.DataView.ToDataTableDistinct(v.local.sDT,"Del_V","DT_BatchVendor$DT_BatchLOC","Name_Vendor*!*LOCATION")
+F.Data.DataView.Create("DT_BatchVendor$DT_BatchLOC","LOCView")
+'F.Data.DataView.Create("DT_BatchVendor$DT_BatchLOC","LOCView",22,"","Name_Vendor ASC,LOCATION DESC")
+
+'Function.Data.DataView.ToDataTableDistinct(v.local.sDT,"Del_V","DT_BatchHdr","LOCATION*!*Name_Vendor*!*DateDue*!*Part")
+Function.Data.DataView.ToDataTableDistinct(v.local.sDT,"Del_V","DT_BatchHdr","LOCATION*!*Name_Vendor*!*Part")
+Function.Data.DataTable.AddColumn("DT_BatchHdr","Qty", "float")
+	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.DT_BatchHdr.RowCount--,1)
+
+		V.Local.sVendor.set(V.datatable.DT_BatchHdr(V.Local.i).Name_Vendor.fieldval)
+		V.Local.sLOCATION.set(V.datatable.DT_BatchHdr(V.Local.i).LOCATION.fieldval)
+'		V.Local.sDateDue.set(V.datatable.DT_BatchHdr(V.Local.i).DateDue.fieldval)
+		V.Local.sPart.set(V.datatable.DT_BatchHdr(V.Local.i).Part.fieldval)
+
+'		
+'		f.Intrinsic.String.Build("Name_Vendor='{0}' and LOCATION='{1}' and Part='{2}' and DateDue='{3}'",V.Local.sVendor,V.Local.sLOCATION,V.Local.sPart,V.Local.sDateDue,V.Local.sFilter)
+		f.Intrinsic.String.Build("Name_Vendor='{0}' and LOCATION='{1}' and Part='{2}'",V.Local.sVendor,V.Local.sLOCATION,V.Local.sPart,V.Local.sFilter)
+		Function.Data.DataTable.Compute(V.Local.sDV, "Sum(TOTAL_QTY_LINE)",V.Local.sFilter,v.Local.fRet)
+		
+		F.Data.DataTable.SetValue("DT_BatchHdr",V.Local.i,"Qty",v.Local.fRet)
+
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+
+'	F.Data.Linq.Join("Innerjoin","DataTable","ParentVend$VChild*!*Temp","DataTable","DT_BatchHdr*!*TempDT","Temp.Name_Vendor = TempDT.Name_Vendor and Temp.LOCATION = TempDT.LOCATION and Temp.Part = TempDT.Part and Temp.DateDue = TempDT.DateDue","Temp.Location*!*Temp.Name_Vendor*!*Temp.DateDue*!*Temp.Part*!*Temp.BuyerName*!*Temp.Description*!*Temp.Code_Sort*!*Temp.Code_Source*!*Temp.Slabs*!*Temp.Length*!*Temp.Width*!*TempDT.Qty*!*Temp.UserID_Originator","","","Temp.Location","DTBatchTemp",True)
+		F.Data.Linq.Join("Innerjoin","DataTable","ParentVend$VChild*!*Temp","DataTable","DT_BatchHdr*!*TempDT","Temp.Name_Vendor = TempDT.Name_Vendor and Temp.LOCATION = TempDT.LOCATION and Temp.Part = TempDT.Part","Temp.Location*!*Temp.Name_Vendor*!*Temp.DateDue*!*Temp.Part*!*Temp.BuyerName*!*Temp.Description*!*Temp.Code_Sort*!*Temp.Code_Source*!*Temp.Slabs*!*Temp.Length*!*Temp.Width*!*TempDT.Qty*!*Temp.UserID_Originator*!*Temp.GL_Account*!*Temp.UM*!*Temp.unit_price*!*Temp.Product_Line*!*Temp.Exchange_Rate*!*Temp.Exchange_Cost*!*Temp.PO_REQ*!*Temp.PO_REQ_LINE","","","Temp.Location","DTBatchTemp",True)
+
+	'In this case not sure why Linq will not create View when named as DT_BatchVendor$DTBatch
+	F.Data.DataView.Create("DTBatchTemp","DTBatchViewTemp")
+'	F.Data.DataView.Create("DTBatchTemp","DTBatchViewTemp",22,"","Name_Vendor ASC,LOCATION ASC")
+	Function.Data.DataView.ToDataTable("DTBatchTemp","DTBatchViewTemp","DT_BatchVendor$DTBatch")
+	F.Data.DataView.Create("DT_BatchVendor$DTBatch","DTBatchView")
+	
+'	F.Data.DataView.Create("DT_BatchVendor$DTBatch","DTBatchView",22,"","Name_Vendor ASC,LOCATION DESC")
+	
+	
+'F.Intrinsic.Debug.InvokeDebugger
+'
+'F.Intrinsic.Debug.Stop
+
+	gui.Form.Batch.AddGridViewFromDataView("ParentGV","DT_BatchVendor","VendorView")
+	gui.Form.Batch.AddGridviewFromDataview("ChildGV","DT_BatchVendor","LOCView")
+	
+	gui.Form.Batch.AddGridViewFromDataView("DTBatchGV","DT_BatchVendor","DTBatchView")
+	
+	gui.Form.Batch.AddRelation("ParentGV","ChildGV","Name_Vendor","Name_Vendor","parent")
+	gui.Form.Batch.AddRelation("ChildGV","DTBatchGV","Name_Vendor*!*LOCATION","Name_Vendor*!*LOCATION","child")
+	
+	Gui.Form.Batch.MainView("ParentGV")
+	gui.Form.Batch.ExpandMasterRow("ParentGV",0)
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","GL_Account","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","UM","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","unit_price","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Product_Line","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Exchange_Rate","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Exchange_Cost","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","PO_REQ","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","PO_REQ_LINE","visible",False)
+	
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","MultiSelect",True)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","AllowSort",True)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","AllowFilter",True)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","OptionsDetailShowDetailTabs",False)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","EnableAppearanceOddRow",True)
+	Gui.Form.Batch.SetGridviewProperty("DTBatchGV","Editable",True)
+	Gui.Form.Batch.SetGridviewProperty("DTBatchGV","readonly",False)
+
+	Gui.Form.Batch.SetColumnProperty("ParentGV","Name_Vendor","Caption","Vendor Name")
+	Gui.Form.Batch.SetColumnProperty("ParentGV","Name_Vendor","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("ParentGV","Name_Vendor","HeaderForeColor","White")
+	
+	
+	Gui.Form.Batch.SetColumnProperty("ChildGV","Location","Caption","Location")
+	Gui.Form.Batch.SetColumnProperty("ChildGV","Location","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("ChildGV","Location","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("ChildGV","Name_Vendor","visible",False)
+	
+	
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","Caption","Vendor Name")
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","HeaderBackColor","Green")
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","HeaderForeColor","White")
+
+	Gui.Form.Batch.SetGridviewProperty("DTBatchGV","Enableappearanceevenrow",True)
+
+	Gui.Form.Batch.SetGridviewProperty("DTBatchGV","Editable",True)
+	Gui.Form.Batch.SetGridviewProperty("DTBatchGV","ReadOnly",False)
+	Gui.Form.Batch.SetGridviewProperty("DTBatchGV","Enableappearanceevenrow",True)
+
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","MultiSelect",True)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","AllowSort",True)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","AllowFilter",True)
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","OptionsDetailShowDetailTabs",False)
+
+	Gui.Form.Batch.SetGridViewProperty("DTBatchGV","EnableAppearanceOddRow",True)
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Location","visible",False)
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","visible",False)
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Part","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Location","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Description","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Code_Sort","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","BuyerName","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Code_Source","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Slabs","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Length","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Width","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","QTY","HeaderBackColor","Green")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","DateDue","HeaderBackColor","Green")
+
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Part","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Location","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Description","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Code_Sort","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","BuyerName","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Code_Source","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Slabs","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Length","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Width","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","QTY","HeaderForeColor","White")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","DateDue","HeaderForeColor","White")
+
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Code_Sort","Caption","Sort Code")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","BuyerName","Caption","Buyer Name")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Code_Source","Caption","Source Code")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Name_Vendor","Caption","Vendor Name")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","Qty","Caption","Total Quantity")
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","DateDue","Caption","Date Due")
+
+
+	gui.Form.Batch.SetColumnProperty("DTBatchGV", "UserID_Originator", "Visible", False)
+
+	Gui.Form.Batch.SetColumnProperty("DTBatchGV","DateDue","DisplayCustomDatetime","d")
+
+
+	Gui.Form.tab1.TabVisible(0,True)
+	Gui.Form.tab1.TabVisible(1,True)
+	Gui.Form.tab1.tabVisible(2,True)
+	Gui.Form.tab1.TabVisible(3,True)
+
+	Gui.Form.tab1.TabVisible(0,False)
+	Gui.Form.tab1.TabVisible(1,False)
+	Gui.Form.tab1.TabVisible(2,False)
+
+	
+
+	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.DT_BatchVendor.RowCount--,1)
+		Gui.Form.Batch.ExpandMasterRow("ParentGV",V.Local.i)
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.DT_BatchVendor$DT_BatchLOC.RowCount--,1)
+		Gui.Form.Batch.ExpandMasterRow("ChildGV",V.Local.i)
+	F.Intrinsic.Control.Next(V.Local.i)
+
+
+	F.Data.DataView.close(V.Local.sDV,"Del_V")
+	F.Data.DataTable.close("DT_BatchHdr")
+'	F.Data.DataTable.close("DTBatchTemp")
+	F.Data.DataTable.close("DT_BatchVendor")
+
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdBatch_Click.End
+
+Program.Sub.optLoc_Click.Start
+F.Intrinsic.Control.Try
+
+	F.Intrinsic.Control.SelectCase(V.Args.ControlName)
+		F.Intrinsic.Control.Case("OPTLOC")
+			F.Intrinsic.Control.If(V.Screen.Form!optLoc.Value,=,True)
+				Gui.Form.tab1.TabVisible(0,True)
+				Gui.Form.tab1.TabVisible(1,True)
+				Gui.Form.tab1.tabVisible(2,True)
+				Gui.Form.tab1.TabVisible(1,False)
+				Gui.Form.tab1.TabVisible(2,False)
+				Gui.Form.tab1.TabVisible(3,False)
+			F.Intrinsic.Control.Else
+				Gui.Form.tab1.TabVisible(0,False)
+				Gui.Form.tab1.TabVisible(1,False)
+				Gui.Form.tab1.TabVisible(2,False)
+				Gui.Form.tab1.TabVisible(3,False)
+			F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.Case("OPTPART")
+			F.Intrinsic.Control.If(V.Screen.Form!optPart.Value,=,True)
+				Gui.Form.tab1.TabVisible(0,True)
+				Gui.Form.tab1.TabVisible(1,True)
+				Gui.Form.tab1.tabVisible(2,True)
+				Gui.Form.tab1.TabVisible(0,False)
+				Gui.Form.tab1.TabVisible(2,False)
+				Gui.Form.tab1.TabVisible(3,False)
+			F.Intrinsic.Control.Else
+				Gui.Form.tab1.TabVisible(0,False)
+				Gui.Form.tab1.TabVisible(1,False)
+				Gui.Form.tab1.TabVisible(2,False)
+				Gui.Form.tab1.TabVisible(3,False)
+			F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.Case("OPTVEND")
+			F.Intrinsic.Control.If(V.Screen.Form!optVend.Value,=,True)
+				Gui.Form.tab1.TabVisible(0,True)
+				Gui.Form.tab1.TabVisible(1,True)
+				Gui.Form.tab1.tabVisible(2,True)
+				Gui.Form.tab1.TabVisible(0,False)
+				Gui.Form.tab1.TabVisible(1,False)
+				Gui.Form.tab1.TabVisible(3,False)
+			F.Intrinsic.Control.Else
+				Gui.Form.tab1.TabVisible(0,False)
+				Gui.Form.tab1.TabVisible(1,False)
+				Gui.Form.tab1.TabVisible(2,False)
+				Gui.Form.tab1.TabVisible(3,False)
+			F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.EndSelect
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.Control.CallSub("Error","Sub",V.Ambient.CurrentSubroutine,"Error",V.Ambient.ErrorNumber,"Description",V.Ambient.ErrorDescription)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndTry
+Program.Sub.optLoc_Click.End
+
+Program.Sub.cmdDelete_Click.Start
+F.Intrinsic.Control.SetErrorHandler("optLoc_Click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+v.Local.iFor.Declare(Long)
+V.Local.iLevel.Declare(Long)
+v.Local.lcount.Declare(Long)
+V.Local.sPO.Declare(String)
+V.Local.sLn.Declare(String)
+V.Local.sDelstring.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sDTVar.Declare(String)
+V.Local.sComments.Declare(String)
+V.Local.sPOReq.Declare(String)
+V.Local.sUOrginator.Declare(String)
+V.Local.sPart.Declare(String)
+
+'Function.Data.DataView.SetFilter("ParentLoc$LChild", "ChildGV", "Selection=True")
+
+'
+'F.Intrinsic.Debug.InvokeDebugger
+'
+'
+
+
+f.Intrinsic.Control.If(v.Screen.Form!cmdDelete.Caption,=,"Cancel")
+	Gui.Form.cmdDelete.Caption("Delete Requisition")
+	Gui.Form.cmdBatch.Caption("Batch")
+	
+	Gui.Form.tab1.TabVisible(0,True)
+	Gui.Form.tab1.TabVisible(1,False)
+	Gui.Form.tab1.TabVisible(2,False)
+	Gui.Form.tab1.TabVisible(3,False)
+	
+	Gui.Form.optLoc.Visible(True)
+	Gui.Form.optPart.Visible(True)
+	Gui.Form.optVend.Visible(True)
+
+	Gui.Form.optLoc.Value(True)
+	f.Intrinsic.Control.ExitSub 
+f.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Screen.Form!optLoc.Value,=,True)
+	V.Local.sDTVar.Set("ParentLoc$LChild")
+F.Intrinsic.Control.elseIf(V.Screen.Form!optPart.Value,=,True)
+	V.Local.sDTVar.Set("ParentPart$PChild")
+F.Intrinsic.Control.elseIf(V.Screen.Form!optVend.Value,=,True)
+	V.Local.sDTVar.Set("ParentVend$VChild")
+f.Intrinsic.Control.endif
+
+
+
+Function.Data.DataView.Create(V.Local.sDTVar,"Del_V",22,"Selection=True","")
+
+v.Local.lcount.set(v.DataView.[V.Local.sDTVar]!Del_V.rowcount)
+f.Intrinsic.Control.If(v.Local.lcount,=,0)
+	F.Data.DataView.close(V.Local.sDTVar,"Del_V")
+	f.Intrinsic.UI.Msgbox("Please select atleast one Line")
+	f.Intrinsic.Control.ExitSub 
+f.Intrinsic.Control.EndIf 
+
+
+gui.Form.location.visible(false)
+gui.Form.part.visible(false)
+gui.Form.vendor.visible(false)
+
+
+
+''F.Data.DataView.SetFilter("ParentLoc$LChild","ChildView","Selection=False")
+
+
+
+f.Intrinsic.Math.Sub(v.Local.lcount,1,v.Local.lcount)
+
+F.Intrinsic.Control.For(v.Local.iFor,v.Local.lcount,0,-1)
+	V.Local.iLevel.Set(v.DataView.[V.Local.sDTVar]!Del_V(v.Local.iFor).DataTableIndex)
+'	f.Data.DataTable.DeleteRow("ParentLoc$LChild",V.Local.iLevel)
+
+	V.Local.sPO.set(V.datatable.[V.Local.sDTVar](V.Local.iLevel).PO_REQ.fieldvaltrim)
+	V.Local.sLn.set(V.datatable.[V.Local.sDTVar](V.Local.iLevel).PO_REQ_LINE.fieldvaltrim)
+	V.Local.sComments.set(V.datatable.[V.Local.sDTVar](V.Local.iLevel).Comments.fieldvaltrim)
+	V.Local.sUOrginator.set(V.datatable.[V.Local.sDTVar](V.Local.iLevel).UserID_Originator.fieldvaltrim)
+	V.Local.sPart.set(V.datatable.[V.Local.sDTVar](V.Local.iLevel).Part.fieldvaltrim)
+	f.Intrinsic.Control.If(V.Local.sDelstring,=,"")
+		f.Intrinsic.String.Build("'{0}{1}'",V.Local.sPO,V.Local.sLn,V.Local.sDelstring)
+	f.Intrinsic.Control.Else
+		f.Intrinsic.String.Build("{0},'{1}{2}'",V.Local.sDelstring,V.Local.sPO,V.Local.sLn,V.Local.sDelstring)
+	f.Intrinsic.Control.EndIf 
+
+'	f.Intrinsic.String.Build("'{0}{1}'",V.Local.sPO,V.Local.sLn,V.Local.sPOReq)
+	f.Intrinsic.Control.CallSub(email_ondelete,"ReqNo",V.Local.sPO,"Comments",V.Local.sComments,"Orginator",V.Local.sUOrginator,"Parts",V.Local.sPart)
+
+f.Intrinsic.Control.Next(v.Local.iFor)
+
+f.Intrinsic.Control.If(V.Local.sDelstring,<>,"")
+	f.Intrinsic.String.Build("({0})",V.Local.sDelstring,V.Local.sDelstring)
+
+'	f.Intrinsic.Control.CallSub(email_ondelete,"ReqNo",V.Local.sDelstring)
+
+	f.Intrinsic.String.Build("delete from GCG_4580_PO_DIMS_1 where RTRIM(PO_REQ)+RTRIM(PO_REQ_LINE) IN {0}",V.Local.sDelstring,V.Local.sSql)
+	f.ODBC.Connection!Con.Execute(V.Local.sSql)
+
+	F.Intrinsic.String.Build("delete from PURCHASE_REQS_1 where RTRIM(PO_REQ_NUMBER)+RTRIM(PO_REQ_LINE) IN {0}",V.Local.sDelstring,V.Local.sSql)
+	f.ODBC.Connection!Con.Execute(V.Local.sSql)
+
+f.Intrinsic.Control.EndIf 
+
+F.Data.DataView.close(V.Local.sDTVar,"Del_V")
+
+
+F.Intrinsic.Control.CallSub("LocationPopulate")
+gui.Form.location.visible(true)
+
+F.Intrinsic.Control.CallSub("PartPopulate")
+gui.Form.part.visible(true)
+
+F.Intrinsic.Control.CallSub("VendorPopulate")
+gui.Form.vendor.visible(true)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("optLoc_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_Auto_Purchasing.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.cmdDelete_Click.End
+
+Program.Sub.Email_Ondelete.Start
+F.Intrinsic.Control.SetErrorHandler("Email_Ondelete_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sSendUserName.Declare(String)
+V.Local.sSendUserEmail.Declare(String)
+V.Local.sRecipName.Declare(String)
+V.Local.sRecipEmail.Declare(String)
+V.Local.sSender.Declare(String)
+V.local.sRecip.Declare(String)
+V.Local.iID.Declare(long)
+V.Local.sSubject.Declare(String)
+V.local.sBody.Declare(String)
+V.Local.iRow.Declare(long)
+
+'F.Intrinsic.Debug.InvokeDebugger
+'
+
+
+'f.Intrinsic.String.Build("select PO_REQ_Number,PO_REQ_LINE,Part,UserID_Originator from PURCHASE_REQS_1  where RTRIM(PO_REQ_Number)+RTRIM(PO_REQ_LINE) = {0}", V.Args.ReqNo,V.Local.sSql)
+'F.ODBC.connection!con.OpenRecordsetRO("rst",V.Local.sSql)
+'F.Intrinsic.Control.If(V.ODBC.Con!rst.EOF,=,False)
+
+	F.Global.Security.getuserID(V.Caller.User,V.Caller.CompanyCode,V.Local.iID)
+
+	'get the senders e-mail
+	F.Global.Security.GetFullName(V.Caller.User,V.Local.sSendUserName)
+	F.Global.Security.GetUserEmail(V.Caller.User,V.Local.sSendUserEmail)
+
+'	f.Intrinsic.Control.DoUntil(V.ODBC.Con!rst.EOF,=,True)
+		'get the Recip e-mail
+		F.Global.Security.GetFullName(V.Args.Orginator,V.Local.sRecipName)
+		F.Global.Security.GetUserEmail(V.Args.Orginator,V.Local.sRecipEmail)
+
+							
+		f.Intrinsic.String.Build("Req# {0} .....declined",V.Args.ReqNo,V.Local.sSubject)
+		f.Intrinsic.String.Build("Req# {0} ..... for Part# {1} declined",V.Args.ReqNo,V.Args.Parts,V.Local.sBody)
+		f.Intrinsic.String.Build("{0}{1}{2}",V.Local.sBody,v.Ambient.NewLine,v.Args.Comments,V.Local.sBody)
+
+
+		'sender string Email and Name
+		F.Intrinsic.String.Concat(V.Local.sSendUserEmail,"*!*",V.Local.sSendUserName,V.Local.sSender)
+		'recipient string s Name *!* Email
+		F.Intrinsic.String.Concat(V.Local.sRecipName,"*!*",V.Local.sRecipEmail,V.local.sRecip)
+		'send one to the contact on the order
+		Function.Global.Messaging.QueueMessage(V.Caller.CompanyCode,V.local.iID,"",V.Local.sSubject,V.Local.sSender,V.Local.sRecip,V.local.sBody,5,,False,,,,,,,)
+
+'		F.ODBC.Con!rst.MoveNext 
+'	f.Intrinsic.Control.loop
+'	
+'F.Intrinsic.Control.Endif
+'F.ODBC.con!rst.Close
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Email_Ondelete_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_Auto_Purchasing.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.Email_Ondelete.End
+
+Program.Sub.CreatePO.Start
+F.Intrinsic.Control.SetErrorHandler("CreatePO_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+v.Local.iFor.Declare(long)
+v.Local.sLastVen.Declare(String)
+v.Local.sLastLoc.Declare(String)
+v.Local.sPO.Declare(String)
+v.Local.sPURORDER.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sFName.Declare(String)
+v.Local.iLine.Declare(long)
+V.Local.sString.Declare(String)
+
+V.Local.sRptID.Declare(string)
+V.local.iLogID.Declare(long)
+V.Local.sParamVal.Declare(string)
+V.Local.sParam.Declare(string)
+V.Local.iRet.Declare(long)
+V.local.iBIRunID.Declare(long)
+
+'Temp.Name_Vendor 
+'LOCATION 
+'Temp.Part 
+'Temp.DateDue
+'Temp.Description
+'TempDT.Qty
+'Temp.GL_Account
+'UM
+'unit_price
+'Product_Line
+'Exchange_Rate
+'Exchange_Cost
+
+
+'	F.Intrinsic.Debug.InvokeDebugger
+
+	'---### Get Last PO Number ###---
+V.Local.sSql.Set("select LAST_PO_NUM from LAST_PO where ASS_SYS='PUR' and ASS_SUB_SYS='CTL'")
+F.ODBC.Connection!Con.OpenLocalRecordsetRO("rstLastPO",V.Local.sSql)
+F.Intrinsic.Control.If(V.ODBC.Con!rstLastPO.EOF,=,False)
+	v.Local.sPO.Set(V.ODBC.Con!rstLastPO.FieldVal!LAST_PO_NUM)
+F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstLastPO.Close
+	
+F.Intrinsic.Math.Add(v.Local.sPO,1,v.Local.sPO)
+
+f.Data.DataTable.AddColumn("DTBatchTemp","VendorID","String")
+
+F.Data.DataView.Create("DTBatchTemp","DTBatchViewTemp1",22,"","Name_Vendor ASC,LOCATION ASC")
+
+
+'f.Intrinsic.UI.Msgbox("NEW PO")
+V.Local.sLastVen.set(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).Name_Vendor.fieldvaltrim)
+V.Local.sLastLoc.set(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).LOCATION.fieldvaltrim)
+
+f.Intrinsic.Control.CallSub(getvendid,"VID",V.Local.sLastVen)
+Function.Data.DataView.SetValue("DTBatchTemp","DTBatchViewTemp1",V.Local.iFor,"VendorID",V.Args.VendorID)
+'f.Intrinsic.UI.Msgbox(V.Args.VendorID)
+
+F.Intrinsic.UI.InvokeWaitDialog("Generating PO . . .")
+F.Intrinsic.Control.For(v.Local.iFor,0,v.dataview.DTBatchTemp!DTBatchViewTemp1.rowcount--,1)
+	f.Intrinsic.Control.If(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).Name_Vendor.fieldvaltrim,<>,V.Local.sLastVen)
+		f.Intrinsic.Control.CallSub(getvendid,"VID",v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).Name_Vendor.fieldvaltrim)
+	F.Intrinsic.Control.Endif
+	Function.Data.DataView.SetValue("DTBatchTemp","DTBatchViewTemp1",V.Local.iFor,"VendorID",V.Args.VendorID)
+
+	f.Intrinsic.Control.If(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).Name_Vendor.fieldvaltrim,<>,V.Local.sLastVen,"OR",v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).LOCATION.fieldvaltrim,<>,V.Local.sLastLoc)
+		V.Local.sLastVen.set(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).Name_Vendor.fieldvaltrim)
+		V.Local.sLastLoc.set(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Local.iFor).LOCATION.fieldvaltrim)
+		'PO = PO + 1
+		F.Intrinsic.Math.Add(v.Local.sPO,1,v.Local.sPO)
+		v.Local.iLine.Set(0) 'RESET LNO for new PO
+	F.Intrinsic.Control.Endif
+	
+
+
+	f.Intrinsic.Math.Add(v.Local.iLine,1,V.Local.iLine)
+	F.Intrinsic.Control.CallSub(NewPurorder,"POLnNo",v.Local.iLine,"LnNo",v.Local.iFor,"PO",v.Local.sPO)
+
+	f.Intrinsic.Control.If(V.Local.sPURORDER,=,"")
+		V.Local.sPURORDER.Set(v.Args.POTEXT)
+	f.Intrinsic.Control.else
+		f.Intrinsic.String.Build("{0}{1}{2}",V.Local.sPURORDER,V.Ambient.NewLine,V.Args.POTEXT,V.Local.sPURORDER)
+	f.Intrinsic.Control.EndIf 
+	
+	'get PO nos for crystal - temp solution
+	F.Intrinsic.String.LPad(V.Local.sPO,"0",7,V.Local.sPO)
+	f.Intrinsic.Control.If(V.Local.sParamVal,=,"")
+'		f.Intrinsic.String.Build("'{0}'",v.Local.sPO,V.Local.sParamVal)
+		f.Intrinsic.String.Build("'{0}'",v.Local.sPO,V.Local.sParamVal)
+	f.Intrinsic.Control.Else
+'		f.Intrinsic.String.Build("{0},'{1}'",V.Local.sParamVal,v.Local.sPO,V.Local.sParamVal)
+		f.Intrinsic.String.Build("{0},'{1}'",V.Local.sParamVal,v.Local.sPO,V.Local.sParamVal)
+	f.Intrinsic.Control.EndIf 
+	
+f.Intrinsic.Control.Next(v.Local.iFor)
+
+
+
+'update Last PO number used
+F.Intrinsic.String.LPad(v.Local.sPO,"0",7,v.Local.sPO)
+F.Intrinsic.String.Concat("Update LAST_PO Set LAST_PO_NUM= '",v.Local.sPO,"' where ASS_SYS='PUR' and ASS_SUB_SYS='CTL' ",V.Local.sSql)
+F.ODBC.Connection!Con.Execute(V.Local.sSql)
+
+
+'Write PO info to PURORDER.txt
+F.Intrinsic.String.Concat(V.Caller.FilesDir,"\PURORDER.txt",V.Local.sFName)
+F.Intrinsic.File.String2File(V.Local.sFName,V.Local.sPURORDER)
+
+'Upload POs
+'old method==============
+'F.Global.General.CallWrappersync(50,"UPLPUROR/U/A")
+'==================================
+
+
+V.Local.sStatus.Declare(String)
+V.Local.sReturnFileName.Declare(String)
+
+
+F.Global.Callwrapper.New("POUpload","Purchasing.PurchaseOrderUpload")
+F.Global.Callwrapper.SetProperty("POUpload","Mode",0)
+'F.Global.Callwrapper.SetProperty("POUpload","FileName",V.Local.sFName)
+F.Global.Callwrapper.SetProperty("POUpload","FileName","PURORDER")
+F.Global.CallWrapper.Run("POUpload")
+
+F.Global.CallWrapper.GetProperty("POUpload","Status",V.Local.sStatus)
+
+F.Global.CallWrapper.GetProperty("POUpload","ReturnFileName",V.Local.sReturnFileName)
+
+
+Function.Data.DataView.ToDataTableDistinct("DTBatchTemp","DTBatchViewTemp1","DT_ReqHdr","PO_REQ*!*PO_REQ_Line")
+
+F.Intrinsic.Control.For(v.Local.iFor,0,v.datatable.DT_ReqHdr.rowcount--,1)
+	f.Intrinsic.Control.If(V.Local.sString,=,"")
+		f.Intrinsic.String.Build("'{0}{1}'",v.datatable.DT_ReqHdr(V.Local.iFor).PO_REQ.fieldvaltrim,v.datatable.DT_ReqHdr(V.Local.iFor).PO_REQ_Line.fieldvaltrim,V.Local.sString)
+	f.Intrinsic.Control.Else
+		f.Intrinsic.String.Build("{0},'{1}{2}'",V.Local.sString,v.datatable.DT_ReqHdr(V.Local.iFor).PO_REQ.fieldvaltrim,v.datatable.DT_ReqHdr(V.Local.iFor).PO_REQ_Line.fieldvaltrim,V.Local.sString)
+	f.Intrinsic.Control.EndIf 
+f.Intrinsic.Control.Next(v.Local.iFor)
+
+
+'f.Intrinsic.String.Build("{0}",V.Local.sString,V.Local.sParamVal)
+
+f.Intrinsic.String.Build("({0})",V.Local.sString,V.Local.sString)
+
+
+F.Data.DataView.close("DTBatchTemp","DTBatchViewTemp1")
+F.Data.DataTable.close("DT_ReqHdr")
+'
+'F.Intrinsic.Debug.InvokeDebugger
+'
+'F.Intrinsic.Debug.Stop
+
+V.Local.sSql.Set("Insert Into GCG_4580_PO_LINEDIMS  select Purchase_order,Record_no,Part,Location,Slabs,Length,Width,Quantity,Total_Qty_Line from GCG_4580_PO_REQ_DIMS")
+f.Intrinsic.String.Build(" {0} Join v_PO_Lines on Requisition_No = PO_REQ and Requisition_Line = PO_REQ_Line where PO_REQ + PO_REQ_Line IN {1}",V.Local.sSql,V.Local.sString,V.Local.sSql)
+f.ODBC.Connection!Con.Execute(V.Local.sSql)
+      
+'V.Local.sSql.Set("Delete from GCG_4580_PO_REQ_DIMS where PO_REQ + PO_REQ_Line IN {0}" ,V.Local.sString,V.Local.sSql)
+'f.ODBC.Connection!Con.Execute(V.Local.sSql)
+
+'V.Local.sSql.Set("Delete from Purchase_Reqs where PO_Req_Number + PO_Req_Line IN {0}" ,V.Local.sString,V.Local.sSql)
+'f.ODBC.Connection!Con.Execute(V.Local.sSql)
+
+F.Intrinsic.UI.CloseWaitDialog 
+f.Intrinsic.UI.Msgbox("PO created successfully")
+
+
+
+V.Local.sParam.Set("PO") 
+V.Local.sRptID.set("GCG_4580_Auto_Purchasing.rpt")
+F.Global.BI.GetIDFromName(V.Local.sRptID,V.Local.sRptID)
+F.Global.BI.GetRunID(V.Local.iBIRunID)
+F.Global.BI.StartLogging(V.Local.iBIRunID,V.Local.sRptID,0,"",V.Local.iLogID)
+F.Global.BI.StopLogging(V.Local.iLogID)
+F.Global.BI.RunReportPreProcessor(V.Local.iBIRUNID,V.local.iLogID,V.Local.sParam,V.Local.sParamVal,"",-1,True,"",-1,"",-1,"","",V.Local.iRet)
+
+f.Intrinsic.Control.CallSub(form_unload)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("CreatePO_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_Auto_Purchasing.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.CreatePO.End
+
+Program.Sub.GetVendID.Start
+F.Intrinsic.Control.SetErrorHandler("GetVendID_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sSQL.Declare(String)
+Variable.Local.sRet.Declare(String)
+
+f.Intrinsic.String.Build("select vendor from v_vendor_Master where left(name_Vendor,20) = '{0}'",v.Args.VID,v.Local.sSQL)
+
+Function.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL,16,Variable.Local.sRet)
+
+Function.Intrinsic.Variable.AddRV("VendorID",Variable.Local.sRet)
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GetVendID_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_Auto_Purchasing.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetVendID.End
+
+Program.Sub.NewPurorder.Start
+F.Intrinsic.Control.SetErrorHandler("NewPurorder_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sTempFull.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sVenID.Declare(String)
+V.Local.iQty.Declare(long)
+V.Local.sSql.Declare(String)
+V.Local.sVenName.Declare(String)
+V.Local.sVenAdd1.Declare(String)
+V.Local.sVenAdd2.Declare(String)
+V.Local.sVenState.Declare(String)
+V.Local.sVenZip.Declare(String)
+V.Local.sVenCity.Declare(String)
+V.Local.sVenAttn.Declare(String)
+V.Local.sGL.Declare(String)
+V.Local.sCurrency.Declare(String)
+V.local.sPODate.Declare(String)
+V.local.sPODueDate.Declare(String)
+V.Local.iLno.Declare(long)
+V.Local.sRet.Declare(String)
+V.Local.sPONumber.Declare(String)
+V.Local.sReqNo.Declare(String)
+
+
+F.Intrinsic.String.LPad(V.Args.PO,"0",7,V.Local.sPONumber)
+V.Local.sVenID.set(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).VendorID.fieldvaltrim)
+F.Intrinsic.String.LPad(V.Local.sVenID.Trim,"0",6,V.Local.sVenID)
+V.Local.iQty.Set(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).Qty.fieldval)
+F.Intrinsic.String.RPad(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).Part.fieldvaltrim," ",20,V.Local.sPart)
+
+	f.Intrinsic.Control.If(V.Args.POLnNo,=,1)
+		'--# Header #--
+			F.Intrinsic.String.Concat("select v.vendor,v.Name_Vendor,v.address1, v.address2, V.City, v.rec , V.state, V.Code_Zip, V.Country, V.attention, V.Normal_GL_Account, C.Buyer+C.Territory as CurrencyCode from VENDOR_MASTER as V left join (select *  from VENDOR_MASTER where rec=4)as c on c.vendor=v.vendor where v.rec=1 and v.Vendor='",V.local.sVenID,"'",V.Local.sSql)
+			F.ODBC.Connection!Con.OpenLocalRecordsetRO("rstVend",V.Local.sSql)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstVend.EOF,=,False)
+				V.Local.sVenName.set(V.ODBC.Con!rstVend.FieldVal!Name_Vendor)
+				V.Local.sVenAdd1.set(V.ODBC.Con!rstVend.FieldVal!address1)
+				V.Local.sVenAdd2.set(V.ODBC.Con!rstVend.FieldVal!address2)
+				V.Local.sVenState.set(V.ODBC.Con!rstVend.FieldVal!State)
+				V.Local.sVenZip.set(V.ODBC.Con!rstVend.FieldVal!Code_Zip)
+				V.Local.sVenCity.set(V.ODBC.Con!rstVend.FieldVal!City)
+				V.Local.sVenAttn.set(V.ODBC.Con!rstVend.FieldVal!Attention)
+				V.Local.sGL.set(V.ODBC.Con!rstVend.FieldVal!Normal_GL_Account)
+				V.Local.sCurrency.set(V.ODBC.Con!rstVend.FieldVal!CurrencyCode)
+			F.Intrinsic.Control.EndIf
+			F.ODBC.Con!rstVend.Close
+	
+			'PO Date
+			F.Intrinsic.String.Format(V.ambient.Date,"MMDDYY",V.local.sPODate)
+			'RequiredDate,DueDate
+			F.Intrinsic.String.Format(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).DateDue.fieldval,"MMDDYY",V.local.sPODueDate)
+	
+			'A Record
+		'PO,Rec Type
+		F.Intrinsic.String.Concat(V.Local.sPONumber,"  A",V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",19,V.Local.sTemp)
+		'Ship Via
+		V.Local.sRet.Set("")
+		F.Intrinsic.String.RPad(V.Local.sRet," ",15,V.Local.sRet)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+		'FOB
+		V.Local.sRet.Set("")
+		F.Intrinsic.String.RPad(V.Local.sRet," ",15,V.Local.sRet)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+		'Terms
+		V.Local.sRet.Set("")
+		F.Intrinsic.String.RPad(V.Local.sRet," ",12,V.Local.sRet)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+		'PO Date
+		F.Intrinsic.String.Rpad(V.Local.sTemp," ",195,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.local.sPODate,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",207,V.Local.sTemp)
+		'Date Due
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.local.sPODueDate,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",229,V.Local.sTemp)
+		'GL Account
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sGL,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",267,V.Local.sTemp)
+		'Vendor #
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenID,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",298,V.Local.sTemp)
+	'	'User 1 - Sales Order#, New Line
+	'	F.Intrinsic.String.Concat(V.Local.sTemp,V.Global.sSO,V.Local.sTemp)
+	
+		F.Intrinsic.String.Concat(V.Local.sTempFull,V.Local.sTemp,V.Ambient.NewLine,V.Local.sTempFull)
+		
+			'B Record
+		'PO,Rec Type,Name Vendor
+		F.Intrinsic.String.Concat(V.Local.sPONumber,"  B",V.Local.sVenName,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",40,V.Local.sTemp)
+		'Vendor Address
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenAdd1,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",70,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenAdd2,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",190,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenCity,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",210,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenState,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",212,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenZip,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",237,V.Local.sTemp)
+		'Attention
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenAttn,V.Local.sTemp)
+		
+		F.Intrinsic.String.Concat(V.Local.sTempFull,V.Local.sTemp,V.Ambient.NewLine,V.Local.sTempFull)
+	
+		
+		'C Record
+		F.Intrinsic.String.Concat(V.Local.sPONumber,"  C",V.Local.sVenName,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",40,V.Local.sTemp)
+		'Vendor Address
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenAdd1,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",70,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenAdd2,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",190,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenCity,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",210,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenState,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",212,V.Local.sTemp)
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenZip,V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp," ",237,V.Local.sTemp)
+		'Attention
+		F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sVenAttn,V.Local.sTemp)
+	
+		F.Intrinsic.String.Concat(V.Local.sTempFull,V.Local.sTemp,V.Ambient.NewLine,V.Local.sTempFull)
+	f.Intrinsic.Control.EndIf 
+
+	'PO, Line,Part
+	
+'	f.Intrinsic.Math.Add(V.Args.POLnNo,1,V.Local.iLno)
+'	F.Intrinsic.String.LPad(V.Local.iLno,"0",3,V.Local.sRet)
+
+	F.Intrinsic.String.LPad(V.Args.POLnNo,"0",3,V.Local.sRet)
+	
+	F.Intrinsic.String.Concat(V.Local.sPONumber,V.Local.sRet,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).Part.fieldval,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",30,V.Local.sTemp)
+	
+	'LOC
+	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).LOCATION.fieldvaltrim,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",32,V.Local.sTemp)
+	'Description
+	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).Description.fieldvaltrim,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",62,V.Local.sTemp)
+	'UM
+	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).UM.fieldvaltrim,V.Local.sTemp)
+'	F.Intrinsic.String.Rpad(V.Local.sTemp," ",87,V.Local.sTemp)
+	F.Intrinsic.String.Rpad(V.Local.sTemp," ",77,V.Local.sTemp)
+
+	'Requisition Number
+	F.Intrinsic.String.LPad(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).PO_REQ.fieldvaltrim,"0",6,V.Local.sReqNo)
+	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sReqNo,V.Local.sTemp)
+	F.Intrinsic.String.Rpad(V.Local.sTemp," ",87,V.Local.sTemp)
+	
+	'Taxable
+	F.Intrinsic.String.Concat(V.Local.sTemp,"",V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",100,V.Local.sTemp)
+	'GL Account
+	F.Intrinsic.String.Concat(V.Local.sTemp,"702",V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",121,V.Local.sTemp)
+	
+	'PL
+	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).Product_Line.fieldvaltrim,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",124,V.Local.sTemp)
+	
+	'RequiredDat eLN DueDate
+	F.Intrinsic.String.Format(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).DateDue.fieldval,"MMDDYY",V.local.sPODueDate)
+	F.Intrinsic.String.Concat(V.Local.sTemp,V.local.sPODueDate,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",136,V.Local.sTemp)
+	'Cost
+	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).unit_price.fieldval,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",168,V.Local.sTemp)
+	'Qty
+	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.iQty,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",339,V.Local.sTemp)
+	'Currency
+	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sCurrency,V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",358,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",548,V.Local.sTemp)
+	
+	'Requisition Line
+	F.Intrinsic.String.LPad(v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).PO_REQ_LINE.fieldvaltrim,"0",3,V.Local.sReqNo)
+	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sReqNo,V.Local.sTemp)
+	F.Intrinsic.String.Rpad(V.Local.sTemp," ",551,V.Local.sTemp)
+	
+'	'PL
+'	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).Product_Line.fieldvaltrim,V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",136,V.Local.sTemp)
+'	'Cost
+'	F.Intrinsic.String.Concat(V.Local.sTemp,v.dataview.DTBatchTemp!DTBatchViewTemp1(V.Args.LnNo).unit_price.fieldval,V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",168,V.Local.sTemp)
+'	'Qty
+'	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.iQty,V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",339,V.Local.sTemp)
+'	'Currency
+'	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sCurrency,V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",358,V.Local.sTemp)
+'	'User_1
+'	F.Intrinsic.String.Concat(V.Local.sTemp,"",V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",388,V.Local.sTemp)
+'	'User 2 -remaining of description
+'	F.Intrinsic.String.Mid(V.uGlobal.uPOLines(v.Local.i)!Description,31,30,V.Local.sRet)
+'	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+'	'User 3 - remaining of description
+'	F.Intrinsic.String.Mid(V.uGlobal.uPOLines(v.Local.i)!Description,61,30,V.Local.sRet)
+'	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+'	'User 4 - remaining of description
+'	F.Intrinsic.String.Mid(V.uGlobal.uPOLines(v.Local.i)!Description,91,30,V.Local.sRet)
+'	F.Intrinsic.String.Concat(V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+'	F.Intrinsic.String.RPad(V.Local.sTemp," ",478,V.Local.sTemp)
+'	'User 5
+'	F.Intrinsic.String.Concat(V.Local.sTemp,V.uGlobal.uPOLines(v.Local.i)!User_5,V.Local.sTemp)
+	'Add line to variable that will be written to PURORDER.txt
+	F.Intrinsic.String.Concat(V.Local.sTempFull,V.Local.sTemp,V.Ambient.NewLine,V.Local.sTempFull)
+	
+'	
+	
+	Function.Intrinsic.Variable.AddRV("POTEXT",V.Local.sTempFull)
+F.Intrinsic.Control.ExitSub
+
+
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("NewPurorder_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_Auto_Purchasing.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.NewPurorder.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+Program.Sub.Comments.End
