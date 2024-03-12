@@ -1,0 +1,186 @@
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.fQty.Declare(Float)
+V.Local.iRet.Declare(Long)
+V.Local.fTQty.Declare(Float,-1)
+V.Local.lLength.Declare(Long)
+V.Local.lWidth.Declare(Long)
+V.Local.lSlabs.Declare(Long)
+
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+	'populate hook
+	F.Intrinsic.Control.Case(17050)
+		F.Intrinsic.String.Build("Select * From GCG_4580_PO_LINEDIMS Where PO = '{0}' and PO_Line = '{1}'",V.Passed.008002,V.Passed.008001,V.Local.sSql)
+		F.Data.DataTable.CreateFromSQL("POLINE","con",V.Local.sSql,True)
+
+		F.Intrinsic.Control.If(V.DataTable.POLINE.RowCount--,<>,-1)
+			V.Passed.GAB-Text-3.Set(V.DataTable.POLINE(V.DataTable.POLINE.RowCount--).Slabs!FieldVal)
+			V.Passed.GAB-Text-2.Set(V.DataTable.POLINE(V.DataTable.POLINE.RowCount--).Length!FieldVal)
+			V.Passed.GAB-Text-1.Set(V.DataTable.POLINE(V.DataTable.POLINE.RowCount--).Width!FieldVal)
+		F.Intrinsic.Control.EndIf
+		
+		'hiding taxes are Estimates label
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000335,"HIDE",1)
+		
+		'moving and making hidden field visible on PO Req screen
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-3","PL",400)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-3","PT",215)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-3","PW",40)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-3","PH",14)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-3,"HIDE",0)
+		v.Passed.GAB-LBL-3.Set("#Slabs")
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-3","PL",400)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-3","PT",231)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-3","PW",50)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-3,"HIDE",0)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-3,"LOCK",0)
+
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PL",465)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PT",215)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PW",40)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PH",14)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-2,"HIDE",0)
+		v.Passed.GAB-LBL-2.Set("Length")
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PL",465)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PT",231)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PW",50)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-2,"HIDE",0)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-2,"LOCK",0)
+
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PL",530)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PT",215)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PW",40)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PH",14)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-1,"HIDE",0)
+		v.Passed.GAB-LBL-1.Set("Width")
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PL",530)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PT",231)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PW",50)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"HIDE",0)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"LOCK",0)
+
+		F.Intrinsic.Variable.SetProperty("GAB-BTN-1","PL",585)
+		F.Intrinsic.Variable.SetProperty("GAB-BTN-1","PT",229)
+		F.Intrinsic.Variable.SetProperty("GAB-BTN-1","PW",30)
+		F.Intrinsic.Variable.SetProperty("GAB-BTN-1","PH",20)
+		v.Passed.GAB-BTN-1.Set("f(x)")
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-BTN-1,"HIDE",0)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-BTN-1,"LOCK",0)
+		
+	'Pre save line hook
+	F.Intrinsic.Control.Case(17060)
+		F.Intrinsic.String.Build("Select * From GCG_4580_PO_LINEDIMS Where PO = '{0}' and PO_Line = '{1}'",V.Passed.008002,V.Passed.008001,V.Local.sSql)
+		F.Data.DataTable.CreateFromSQL("POLINE","con",V.Local.sSql,True)
+
+		F.Intrinsic.Control.If(V.Passed.GAB-TEXT-2,<>,"")
+			V.Local.lLength.Set(V.Passed.GAB-TEXT-2)
+		F.Intrinsic.Control.Else
+			V.Local.lLength.Set(0)
+		F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.If(V.Passed.GAB-TEXT-1,<>,"")
+			V.Local.lWidth.Set(V.Passed.GAB-TEXT-1)
+		F.Intrinsic.Control.Else
+			V.Local.lWidth.Set(0)
+		F.Intrinsic.Control.EndIf
+		
+		'checking if record exists already and adding row if doesn't exists
+		F.Intrinsic.Control.If(V.DataTable.POLINE.RowCount--,=,-1)
+			F.Intrinsic.Math.Evaluate("[V.Local.lLength]*[V.Local.lWidth]",V.Local.fQty)
+			
+			F.Data.DataTable.AddRow("POLINE","PO",V.Passed.008002,"PO_LINE",V.Passed.008001,"PART",V.Passed.000008,"LOCATION",V.Passed.000011,"SLABS",V.Passed.GAB-TEXT-3,"LENGTH",V.Passed.GAB-TEXT-2,"WIDTH",V.Passed.GAB-TEXT-1,"Quantity",V.Local.fQty,"TOTAL_QTY_LINE",V.Passed.000048)
+		'setting values if record already exists
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Math.Evaluate("[V.Local.lLength]*[V.Local.lWidth]",V.Local.fQty)
+				
+			F.Data.DataTable.SetValue("POLINE",V.DataTable.POLINE.RowCount--,"PO",V.Passed.008002,"PO_LINE",V.Passed.008001,"PART",V.Passed.000008,"LOCATION",V.Passed.000011,"SLABS",V.Passed.GAB-TEXT-3,"LENGTH",V.Passed.GAB-TEXT-2,"WIDTH",V.Passed.GAB-TEXT-1,"Quantity",V.Local.fQty,"TOTAL_QTY_LINE",V.Passed.000021)
+		F.Intrinsic.Control.EndIf
+
+		'saving record
+		F.Data.DataTable.SaveToDB("POLINE","con","GCG_4580_PO_LINEDIMS","PO*!*PO_LINE",7,"PO@!@PO*!*PO_LINE@!@PO_LINE*!*PART@!@PART*!*LOCATION@!@LOCATION*!*SLABS@!@SLABS*!*LENGTH@!@LENGTH*!*WIDTH@!@WIDTH*!*QUANTITY@!@QUANTITY*!*TOTAL_QTY_LINE@!@TOTAL_QTY_LINE")
+
+		V.Passed.GAB-Text-1.Set("")
+		V.Passed.GAB-Text-2.Set("")
+		V.Passed.GAB-Text-3.Set("")
+
+	'GAB-BTN-1 hook
+	F.Intrinsic.Control.Case(17151)
+		F.Intrinsic.Control.If(V.Passed.GAB-TEXT-3,<>,"")
+			V.Local.lSlabs.Set(V.Passed.GAB-TEXT-3)
+		F.Intrinsic.Control.Else
+			V.Local.lSlabs.Set(0)
+		F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.If(V.Passed.GAB-TEXT-2,<>,"")
+			V.Local.lLength.Set(V.Passed.GAB-TEXT-2)
+		F.Intrinsic.Control.Else
+			V.Local.lLength.Set(0)
+		F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.If(V.Passed.GAB-TEXT-1,<>,"")
+			V.Local.lWidth.Set(V.Passed.GAB-TEXT-1)
+		F.Intrinsic.Control.Else
+			V.Local.lWidth.Set(0)
+		F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Math.Evaluate("[V.Local.lSlabs]*([V.Local.lLength]*[V.Local.lWidth])",V.Local.fTQty)
+		V.Passed.000021.Set(V.Local.fTQty)
+
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.CallSub(exit)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_PO_LINE_DIMS.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.SetErrorHandler("Exit_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'closing datatables
+F.Intrinsic.Control.If(V.DataTable.POLINE.Exists,=,True)
+	F.Data.DataTable.Close("POLINE")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.DIM.Exists,=,True)
+	F.Data.DataTable.Close("DIM")
+F.Intrinsic.Control.EndIf
+
+'closing connection
+F.ODBC.Connection!con.Close
+'ending program
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Exit_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_PO_LINE_DIMS.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$RLK$}$5/16/2017 3:28:00 PM$}$False
+Program.Sub.Comments.End
