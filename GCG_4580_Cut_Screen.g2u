@@ -1,0 +1,447 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("MIR Cut Screen")
+Gui.Form..Size(14955,8385)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.lblCutScreen.Create(Label,"Cut Screen",True,14850,1020,0,15,45,True,2,"Arial",24,32768,1)
+Gui.Form.lblCutScreen.ForeColor(16777215)
+Gui.Form.picGssLogo.Create(PictureBox)
+Gui.Form.picGssLogo.Size(4020,1005)
+Gui.Form.picGssLogo.Position(0,0)
+Gui.Form.picGssLogo.BackColor(16777215)
+Gui.Form.cutscreen.Create(GsGridControl)
+Gui.Form.cutscreen.Size(14565,5745)
+Gui.Form.cutscreen.Position(105,1695)
+Gui.Form.txtPartRev.Create(TextBox,"",True,2175,300,0,105,1365,True,0,"Arial",8,-2147483643,1)
+Gui.Form.lblPartRev.Create(Label,"Part/Rev",True,1935,255,0,105,1140,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtLoc.Create(TextBox,"",True,600,300,0,2445,1365,True,0,"Arial",8,-2147483643,1)
+Gui.Form.lblLoc.Create(Label,"Loc",True,585,255,0,2445,1140,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtSerial.Create(TextBox,"",True,2400,300,0,3210,1365,True,0,"Arial",8,-2147483643,1)
+Gui.Form.lblSerial.Create(Label,"Serial #",True,1935,255,0,3210,1140,True,0,"Arial",8,-2147483633,0)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(855,375)
+Gui.Form.cmdSave.Position(105,7530)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdPrint.Create(Button)
+Gui.Form.cmdPrint.Size(855,375)
+Gui.Form.cmdPrint.Position(1065,7530)
+Gui.Form.cmdPrint.Caption("Print")
+Gui.Form.cmdDelete.Create(Button)
+Gui.Form.cmdDelete.Size(855,375)
+Gui.Form.cmdDelete.Position(2025,7530)
+Gui.Form.cmdDelete.Caption("Delete")
+Gui.Form.cmdDelete.Event(Click,cmdDelete_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Variable.Global.iGrid.Declare(Long,0)
+Program.Sub.Preflight.End
+
+Program.Sub.Form_UnLoad.Start
+F.ODBC.Connection!con.Close
+F.Intrinsic.Control.End
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String)
+	V.Local.sRow.Declare(String)
+	V.Local.sPart.Declare(String)
+	V.Local.sGssLogo.Declare(String)
+	V.Local.sRev.Declare(String)
+	
+	F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPAss)
+	
+	F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+		'part allocation screen
+		F.Intrinsic.Control.Case(33120)
+			F.Intrinsic.BDF.Load("CLONE","AUX001")
+			F.Intrinsic.BDF.ReadRow("CLONE",V.Passed.Grid-Row-Sel,V.Local.sRow)
+			F.Intrinsic.String.Split(V.Local.sRow,"|~|",V.Local.sRow)
+			
+			F.Intrinsic.String.RPad(V.Passed.000005," ",17,V.Local.sPart)
+			F.Intrinsic.String.RPad(V.Passed.000006," ",3,V.Local.sRev)
+			F.Intrinsic.String.Build("{0}{1}",V.Local.sPart,V.Local.sRev,V.Local.sPart)
+			Gui.Form.txtPartRev.Text(V.Local.sPart)
+			Gui.Form.txtLoc.Text(V.Passed.000008.Trim)
+			F.Intrinsic.Control.If(V.Local.sRow.UBound,>,0)
+				Gui.Form.txtSerial.Text(V.Local.sRow(3).Trim)
+			F.Intrinsic.Control.Else
+				Gui.Form.txtSerial.Text("")
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.String.Build("{0}\GCG_4580_GSS_Logo_Green_Dash.png",V.Caller.FilesDir,V.Local.sGssLogo)
+			Gui.Form.picGssLogo.Picture(V.Local.sGssLogo)
+			
+			gui.Form.lblCutScreen.Anchor(13)
+			gui.Form.cutscreen.Anchor(15)
+			gui.Form.lblCutScreen.Alignment(2)
+			gui.Form.cmdDelete.Anchor(6)
+			gui.Form.cmdPrint.Anchor(6)
+			gui.Form.cmdSave.Anchor(6)
+			
+			F.Intrinsic.Control.CallSub("PopulateGrid","Part",V.Local.sPart,"Serial",V.Local.sRow(3))
+
+			'creating the context menu
+			Gui.Form..ContextMenuCreate("Cut Menu")
+			Gui.Form..ContextMenuCreate("Alloc Type")
+ 
+			'adding the menu items to the context menu
+			Gui.Form..ContextMenuAddItem("Cut Menu","Item 0",0,"Item 0")
+			Gui.Form..ContextMenuAddItem("Cut Menu","Item 1",0,"Item 1")
+			Gui.Form..ContextMenuAddItem("Cut Menu","Item 2",0,"Item 2")
+
+			Gui.Form..ContextMenuAddItem("Alloc Type","Item 0",0,"Item 0")
+			Gui.Form..ContextMenuAddItem("Alloc Type","Item 1",0,"Item 1")
+			Gui.Form..ContextMenuAddItem("Alloc Type","Item 2",0,"Item 2")
+			Gui.Form..ContextMenuAddItem("Alloc Type","Item 3",0,"Item 3")
+			gui.form..contextmenusetitemtext("Alloc Type","Item 0","W")
+			gui.form..contextmenusetitemtext("Alloc Type","Item 1","C")
+			gui.form..contextmenusetitemtext("Alloc Type","Item 2","S")
+			gui.form..contextmenusetitemtext("Alloc Type","Item 3","U")
+ 			gui.form..contextmenusetitemtext("Cut Menu","Item 0","Add Cut")
+ 			gui.form..contextmenusetitemtext("Cut Menu","Item 1","Allocation Type")
+ 			gui.Form..ContextMenusetitemtext("Cut Menu","Item 2","Delete")
+			
+			GUI.formname..ContextMenuSetItemEventHandler("Cut Menu","Item 0","SubMenu")
+			GUI.formname..ContextMenuSetItemEventHandler("Cut Menu","Item 1","SubMenu")
+'			attaching the context menu 
+ 			gui.Form.cutscreen.contextmenuattach("Cut Menu")
+
+			Gui.Form..Show
+			
+		F.Intrinsic.Control.Case(00000)
+		
+		F.Intrinsic.Control.CaseElse
+			F.ODBC.Connection!con.Close
+			F.Intrinsic.Control.End
+			
+	F.Intrinsic.Control.EndSelect
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}: {1}",V.Ambient.CurrentSubroutine,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.PopulateGrid.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String)
+	V.Local.sSql.Declare(String)
+	V.Local.i.Declare(Long)
+	V.Local.sParent.Declare(String)
+	
+	F.Intrinsic.String.Build("Select rtrim(Lvl_P) as Lvl_P, rtrim(Lvl_C) as Lvl_C, Part, Location, Length, Width, Serial, Aloc_Type, Aloc_Value From GCG_4580_Cut_Screen Where Part = '{0}' and Location = '{1}' and  Left(Serial,15) = '{2}' Order by Lvl_P",V.Args.Part,V.Passed.000008.Trim,V.Args.Serial.Left15,V.Local.sSql)
+	
+	F.Data.DataTable.CreateFromSQL("Temp","con",V.Local.sSql,True)
+	F.Intrinsic.Control.For(V.Local.i,V.DataTable.Temp.RowCount--,0,-1)
+		V.Local.sParent.Set(V.DataTable.Temp.Lvl_P(V.Local.i)!FieldValTrim)
+		F.Intrinsic.String.Split(V.Local.sParent,".",V.Local.sParent)
+		F.Intrinsic.Control.If(V.Local.sParent.UBound,>,0)
+			F.Data.DataTable.DeleteRow("Temp",V.Local.i)
+		F.Intrinsic.Control.EndIf
+		V.Local.sParent.Redim(0,0)
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+	'creating top level parent dataview
+	F.Data.DataView.Create("Temp","Temp",22,"","Lvl_P")
+	
+	F.Data.DataView.ToDataTable("Temp","Temp","Parent",True)
+	
+	F.Data.DataTable.AddColumn("Parent","Cut","Boolean")
+	F.Data.DataTable.AddColumn("Parent","Labels","Boolean")
+	F.Data.DataTable.AddColumn("Parent","Lvl","Long")
+	F.Data.DataView.Close("Temp","Temp")
+	F.Data.DataTable.Close("Temp")
+
+	F.Data.DataView.Create("Parent","Parent",22,"","Lvl_P")
+	F.Data.DataTable.SetValue("Parent",-1,"Cut",False)
+	F.Data.DataTable.SetValue("Parent",-1,"Labels",False)
+	F.Data.DataTable.SetValue("Parent",-1,"Lvl",1)
+	Gui.Form.cutscreen.AddGridviewFromDataView("Parent","Parent","Parent")
+	
+	Gui.Form.cutscreen.MainView("Parent")
+	
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl_P","Visible",False)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl_C","Visible",False)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Part","Visible",False)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Location","Visible",False)
+	Gui.Form.cutscreen.SetGridviewProperty("Parent","Enableappearanceevenrow",True)
+	Gui.Form.cutscreen.SetGridViewProperty("Parent","MultiSelect",False)
+	Gui.Form.cutscreen.SetGridViewProperty("Parent","AllowSort",False)
+	Gui.Form.cutscreen.SetGridViewProperty("Parent","AllowFilter",False)
+	Gui.Form.cutscreen.SetGridViewProperty("Parent","Editable",True)
+	Gui.Form.cutscreen.SetGridViewProperty("Parent","ReadOnly",False)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Aloc_Type","Caption","Type")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Aloc_Value","Caption","Value")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Cut","Caption","Commit Cut")
+	
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl","VisibleIndex",0)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Cut","VisibleIndex",1)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Labels","VisibleIndex",9)
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl","CellHAlignment","Center")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Length","CellHAlignment","Center")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Width","CellHAlignment","Center")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Length","HeaderHAlignment","Center")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Width","HeaderHAlignment","Center")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl","MaxWidth","20")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Cut","MaxWidth","30")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Labels","MaxWidth","30")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Labels","Width","30")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Lvl","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Cut","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Cut","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Labels","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Labels","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Length","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Length","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Width","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Width","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Serial","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Serial","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Aloc_Type","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Aloc_Type","HeaderForeColor","White")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Aloc_Value","HeaderBackColor","Green")
+	Gui.Form.cutscreen.SetColumnProperty("Parent","Aloc_Value","HeaderForeColor","White")
+	'creating child tables and creating relationship
+	V.Local.i.Set(0)
+	F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.Parent.RowCount--,1)	
+		F.Intrinsic.Control.CallSub("ChildDataTable","Parent","Parent","i",V.Local.i,"Value",V.DataTable.Parent(V.local.i).Lvl_P!FieldValTrim)
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}: {1}",V.Ambient.CurrentSubroutine,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.PopulateGrid.End
+
+Program.Sub.ChildDataTable.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String)
+	V.Local.sSql.Declare(String)
+	V.Local.sDataTable.Declare(String)
+	V.Local.i.Declare(Long)
+	V.Local.sP.Declare(String)
+	V.Local.sGrid.Declare(String)
+	V.Local.sTemp.Declare(String)
+	V.Local.iLvl.Declare(Long)
+	V.Local.sRow.Declare(String)
+	
+	F.Intrinsic.String.Build("Select rtrim(Lvl_P) as Lvl_P, rtrim(Lvl_C) as Lvl_C, Part, Location, Length, Width, Serial, Aloc_Type, Aloc_Value From GCG_4580_Cut_Screen Where rtrim(Lvl_C) = '{0}' Order by Lvl_P",V.Args.Value.Trim,V.Local.sSql)
+	
+	F.Intrinsic.String.Build("{0}${1}",V.Args.Parent.Trim,V.Args.i,V.Local.sDataTable)
+	
+	F.Data.DataTable.CreateFromSQL(V.Local.sDataTable,"con",V.Local.sSql,True)
+	
+	F.Data.DataTable.AddColumn(V.Local.sDataTable,"Cut","Boolean")
+	F.Data.DataTable.AddColumn(V.Local.sDataTable,"Labels","Boolean")
+	F.Data.DataTable.AddColumn(V.Local.sDataTable,"Lvl","Long")
+	F.Intrinsic.Control.If(V.DataTable.[V.Local.sDataTable].Exists,=,True)
+		F.Data.DataTable.AddRelation(V.Args.Parent,"Lvl_P",V.Local.sDataTable,"Lvl_C")
+		F.Intrinsic.Control.If(V.DataTable.[V.Local.sDataTable].RowCount--,>,-1)
+			F.Intrinsic.String.Split(V.DataTable.[V.Local.sDataTable](0).Lvl_P!FieldValTrim,".",V.Local.sRow)
+			F.Intrinsic.Math.Add(V.Local.sRow.UBound,1,V.Local.iLvl)
+			F.Data.DataTable.SetValue(V.Local.sDataTable,-1,"Lvl",V.Local.iLvl)
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.[V.Local.sDataTable(V.Local.i)].RowCount--,1)
+			V.Local.sP.Set(V.DataTable.[V.Local.sDataTable].Lvl_P(V.Local.i)!FieldValTrim)
+			F.Intrinsic.Control.CallSub("ChildDataTable2","Parent",V.Local.sDataTable,"i",V.Local.i,"Value",V.Local.sP.Trim)
+		F.Intrinsic.Control.Next(V.Local.i)
+
+		F.Intrinsic.Math.Add(V.Global.iGrid,1,V.Global.iGrid)
+		F.Intrinsic.String.Build("Grid{0}",V.Global.iGrid,V.Local.sGrid)
+		
+		F.Intrinsic.Control.If(V.DataTable.[V.Local.sDataTable].RowCount--,>,-1)
+			F.Data.DataView.Create(V.Local.sDataTable,V.Local.sGrid,22,"","Lvl_P")
+			
+			F.Data.DataTable.SetValue(V.Local.sDataTable,-1,"Cut",False)
+			F.Data.DataTable.SetValue(V.Local.sDataTable,-1,"Labels",False)
+			
+			Gui.Form.cutscreen.AddGridviewFromDataView(V.Local.sGrid,"Parent",V.Local.sGrid)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl_P","Visible",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl_C","Visible",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Part","Visible",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Location","Visible",False)
+			Gui.Form.cutscreen.SetGridviewProperty(V.Local.sGrid,"Enableappearanceevenrow",True)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"MultiSelect",False)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"AllowSort",False)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"AllowFilter",False)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"Editable",True)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"ReadOnly",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Type","Caption","Type")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Value","Caption","Value")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","Caption","Commit Cut")
+			
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","VisibleIndex",0)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","VisibleIndex",1)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","VisibleIndex",9)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","CellHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","CellHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","CellHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","HeaderHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","HeaderHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","MaxWidth","20")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","MaxWidth","30")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","MaxWidth","30")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","Width","30")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Serial","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Serial","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Type","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Type","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Value","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Value","HeaderForeColor","White")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.ExitSub
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}: {1}",V.Ambient.CurrentSubroutine,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.ChildDataTable.End
+
+Program.Sub.cmdDelete_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}: {1}",V.Ambient.CurrentSubroutine,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdDelete_Click.End
+
+Program.Sub.ChildDataTable2.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String)
+	V.Local.sSql.Declare(String)
+	V.Local.sDataTable.Declare(String)
+	V.Local.i.Declare(Long)
+	V.Local.sGrid.Declare(String)
+	V.Local.sTemp.Declare(String)
+	V.Local.iLvl.Declare(Long)
+	V.Local.sRow.Declare(String)
+	
+	F.Intrinsic.String.Build("Select rtrim(Lvl_P) as Lvl_P, rtrim(Lvl_C) as Lvl_C, Part, Location, Length, Width, Serial, Aloc_Type, Aloc_Value From GCG_4580_Cut_Screen Where rtrim(Lvl_C) = '{0}' Order by Lvl_P",V.Args.Value.Trim,V.Local.sSql)
+	
+	F.Intrinsic.String.Build("{0}${1}",V.Args.Parent.Trim,V.Args.i,V.Local.sDataTable)
+	
+	F.Data.DataTable.CreateFromSQL(V.Local.sDataTable,"con",V.Local.sSql,True)
+	
+	F.Data.DataTable.AddColumn(V.Local.sDataTable,"Cut","Boolean")
+	F.Data.DataTable.AddColumn(V.Local.sDataTable,"Labels","Boolean")
+	F.Data.DataTable.AddColumn(V.Local.sDataTable,"Lvl","Long")
+	
+	F.Intrinsic.Control.If(V.DataTable.[V.Local.sDataTable].Exists,=,True)
+		F.Data.DataTable.AddRelation(V.Args.Parent,"Lvl_P",V.Local.sDataTable,"Lvl_C")
+		F.Intrinsic.Control.If(V.DataTable.[V.Local.sDataTable].RowCount--,>,-1)
+			F.Intrinsic.String.Split(V.DataTable.[V.Local.sDataTable](0).Lvl_P!FieldValTrim,".",V.Local.sRow)
+			F.Intrinsic.Math.Add(V.Local.sRow.UBound,1,V.Local.iLvl)
+			F.Data.DataTable.SetValue(V.Local.sDataTable,-1,"Lvl",V.Local.iLvl)
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.For(V.Local.i,0,V.DataTable.[V.Local.sDataTable(V.Local.i)].RowCount--,1)
+			F.Intrinsic.Control.CallSub("ChildDataTable","Parent",V.Local.sDataTable,"i",V.Local.i,"Value",V.DataTable.[V.Local.sDataTable].Lvl_P(V.Local.i)!FieldValTrim)
+		
+		F.Intrinsic.Control.If(V.DataTable.[V.Local.sDataTable].RowCount--,>,-1)
+			F.Data.DataView.Create(V.Local.sDataTable,V.Local.sGrid,22,"","Lvl_P")
+			F.Data.DataTable.SetValue(V.Local.sDataTable,-1,"Cut",False)
+			F.Data.DataTable.SetValue(V.Local.sDataTable,-1,"Labels",False)
+			
+			Gui.Form.cutscreen.AddGridviewFromDataView(V.Local.sGrid,"Parent",V.Local.sGrid)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl_P","Visible",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl_C","Visible",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Part","Visible",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Location","Visible",False)
+			Gui.Form.cutscreen.SetGridviewProperty(V.Local.sGrid,"Enableappearanceevenrow",True)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"MultiSelect",False)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"AllowSort",False)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"Editable",True)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"ReadOnly",False)
+			Gui.Form.cutscreen.SetGridViewProperty(V.Local.sGrid,"AllowFilter",False)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Type","Caption","Type")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Value","Caption","Value")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","Caption","Commit Cut")
+			
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","VisibleIndex",0)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","VisibleIndex",1)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","VisibleIndex",9)
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","CellHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","CellHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","CellHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","HeaderHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","HeaderHAlignment","Center")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","MaxWidth","20")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","MaxWidth","30")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","MaxWidth","30")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","Width","30")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Lvl","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Cut","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Labels","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Length","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Width","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Serial","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Serial","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Type","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Type","HeaderForeColor","White")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Value","HeaderBackColor","Green")
+			Gui.Form.cutscreen.SetColumnProperty(V.Local.sGrid,"Aloc_Value","HeaderForeColor","White")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.ExitSub
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}: {1}",V.Ambient.CurrentSubroutine,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.ChildDataTable2.End
+
+Program.Sub.SubMenu.Start
+F.Intrinsic.Control.Try
+	V.Local.iY.Declare(Long)
+	V.Local.iX.Declare(Long)
+	
+	F.Intrinsic.API.GetMousePosition(V.Local.iX,V.Local.iY)
+	
+	F.Intrinsic.Control.SelectCase(V.Args.ItemName)
+		F.Intrinsic.Control.Case("Current Level")
+			GUI.formname..ContextMenuShow("Cut Level",V.Local.iX,V.Local.iY)
+		F.Intrinsic.Control.Case("Allocation Type")
+			GUI.formname..ContextMenuShow("Alloc Type",V.Local.iX,V.Local.iY)
+	F.Intrinsic.Control.EndSelect
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}: {1}",V.Ambient.CurrentSubroutine,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.SubMenu.End
