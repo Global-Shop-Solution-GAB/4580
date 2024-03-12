@@ -1,0 +1,155 @@
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Exit_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sRev.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sLine.Declare(String)
+
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+	'populat hook PO Receipts Lot/Ser
+	F.Intrinsic.Control.Case(16400)
+		'putting part and rev back togther
+		F.Intrinsic.String.RPad(V.Passed.000001," ",17,V.Local.sPart)
+		F.Intrinsic.String.LPad(V.Passed.000135," ",3,V.Local.sRev)
+		F.Intrinsic.String.Build("{0}{1}",V.Local.sPart,V.Local.sRev,V.Local.sPart)
+		F.Intrinsic.String.RPad(V.Passed.009001,"0",4,V.Local.sLine)
+		F.Intrinsic.String.Build("Select REQUISITION_NO, REQUISITION_LINE, PART From V_PO_Lines Where Purchase_Order = '{0}' and Record_No = '{1}'",V.Passed.009000,V.Local.sLine,V.Local.sSql)
+		F.Data.DataTable.CreateFromSQL("PO","con",V.Local.sSql,True)
+
+		F.Intrinsic.Control.If(V.DataTable.PO.RowCount--,<>,-1)
+			F.Intrinsic.String.LPad(V.DataTable.PO(V.DataTable.PO.RowCount--).Requisition_Line!FieldVal,"0",3,V.Local.sLine)
+			F.Intrinsic.String.Build("Select * From GCG_4580_PO_REQ_DIMS Where PO_REQ = '{0}' and PO_REQ_Line = '{1}' and Part = '{2}'",V.DataTable.PO(V.DataTable.PO.RowCount--).Requisition_No!FieldVal,V.Local.sLine,V.DataTable.PO(V.DataTable.PO.RowCount--).Part!FieldVal,V.Local.sSql)
+			F.Data.DataTable.CreateFromSQL("POREQ","con",V.Local.sSql,True)
+
+			'populate bdf
+			F.Intrinsic.Control.CallSub(populate_bdf)
+
+		F.Intrinsic.Control.EndIf
+
+		F.Data.DataTable.Close("PO")
+
+		F.Intrinsic.Control.If(V.DataTable.POReq.Exists,=,True)
+			F.Data.DataTable.Close("POReq")
+		F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.CallSub(exit)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Exit_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_PO_SER_LOT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.SetErrorHandler("Exit_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+F.ODBC.Connection!con.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Exit_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_PO_SER_LOT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Exit.End
+
+Program.Sub.Populate_BDF.Start
+F.Intrinsic.Control.SetErrorHandler("Populate_BDF_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.i.Declare(Long)
+V.Local.sRow.Declare(String)
+V.Local.sSerial.Declare(String)
+V.Local.iCount.Declare(Long)
+V.Local.sPart.Declare(String)
+V.Local.sRev.Declare(String)
+V.Local.sSql.Declare(String)
+
+F.Intrinsic.BDF.Load("AUX002","AUX002")
+F.Intrinsic.BDF.Clone("AUX002","CLONE")
+
+F.Intrinsic.Control.If(V.DataTable.POReq.RowCount--,<>,-1)
+	'putting part and rev back togther
+	F.Intrinsic.String.RPad(V.Passed.000001," ",17,V.Local.sPart)
+	F.Intrinsic.String.LPad(V.Passed.000135," ",3,V.Local.sRev)
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sPart,V.Local.sRev,V.Local.sPart)
+	F.Intrinsic.String.Build("Select Top 1 Serial_Number From V_Item_Master Where Part = '{0}' and Location = '{1}'",V.Local.sPart,V.Passed.000002,V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("Serial","con",V.Local.sSql,True)
+	F.Intrinsic.Control.If(V.DataTable.Serial.RowCount--,=,-1)
+		F.Intrinsic.Control.For(V.Local.i,1,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Slabs!FieldValLong,1)
+			F.Intrinsic.String.LPad(V.Local.i,"0",3,V.Local.sSerial)
+			F.Intrinsic.String.Build("{0}.{1}.{2}.500",V.Passed.009000,V.Passed.009001,V.Local.sSerial,V.Local.sSerial)
+			F.Intrinsic.String.Build("{0}|~|{1}|~|{2}|~|{3}|~|{4}|~|{5}|~|{6}|~|{7}|~|{8}|~|{9}|~|{10}|~|{11}","Y","","","","",V.Local.sSerial,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Quantity!FieldValFloat,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Quantity!FieldValFloat,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Length!FieldValFloat,"Feet",V.DataTable.POReq(V.DataTable.POReq.RowCount--).Width!FieldValFloat,"Inches",V.Local.sRow)
+
+			F.Intrinsic.BDF.WriteRow("CLONE",V.Local.sRow)
+		F.Intrinsic.Control.Next(V.Local.i)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Split(V.DataTable.Serial(V.DataTable.Serial.RowCount--).Serial_Number!FieldValTrim,".",V.Local.sSerial)
+		V.Local.iCount.Set(V.Local.sSerial(2).Long)
+		F.Intrinsic.Control.For(V.Local.i,1,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Slabs!FieldValLong,1)
+			F.Intrinsic.String.LPad(V.Local.i,"0",3,V.Local.sSerial)
+			F.Intrinsic.String.Build("{0}.{1}.{2}.500",V.Passed.009000,V.Passed.009001,V.Local.sSerial,V.Local.sSerial)
+			F.Intrinsic.String.Build("{0}|~|{1}|~|{2}|~|{3}|~|{4}|~|{5}|~|{6}|~|{7}|~|{8}|~|{9}|~|{10}|~|{11}","Y","","","","",V.Local.sSerial,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Quantity!FieldValFloat,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Quantity!FieldValFloat,V.DataTable.POReq(V.DataTable.POReq.RowCount--).Length!FieldValFloat,"Feet",V.DataTable.POReq(V.DataTable.POReq.RowCount--).Width!FieldValFloat,"Inches",V.Local.sRow)
+
+			F.Intrinsic.BDF.WriteRow("CLONE",V.Local.sRow)
+		F.Intrinsic.Control.Next(V.Local.i)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.BDF.Save("CLONE","AUX002")
+
+F.Intrinsic.String.Split(V.Local.sRow,"|~|",V.Local.sRow)
+
+'V.Passed.000105.Set(V.Local.sRow(8))
+'V.Passed.000106.Set(V.Local.sRow(9))
+'V.Passed.000107.Set(V.Local.sRow(10))
+'V.Passed.000108.Set(V.Local.sRow(11))
+
+'V.Passed.000071.Set(V.Local.sRow(6).Float)
+'V.Passed.000072.Set(V.Local.sRow(7).Float)
+'V.Passed.000065.Set(V.Local.sSerial)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Populate_BDF_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4580_PO_SER_LOT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(exit)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Populate_BDF.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$RLK$}$5/19/2017 1:38:50 PM$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$Loads BDF and for every part, it queries for real inventory part based on description and swaps part out in BDF.
+
+
+Program.Sub.Comments.End
